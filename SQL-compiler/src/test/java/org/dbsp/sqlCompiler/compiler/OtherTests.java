@@ -57,13 +57,10 @@ import org.dbsp.util.StringPrintStream;
 import org.dbsp.util.Utilities;
 import org.junit.Assert;
 import org.junit.Test;
-import sun.awt.image.FileImageSource;
-import sun.awt.image.JPEGImageDecoder;
 
+import javax.imageio.ImageIO;
 import javax.sql.DataSource;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -389,11 +386,8 @@ public class OtherTests extends BaseSQLTests implements IModule {
         CompilerMessages message = CompilerMain.execute("-jpg", "-o", jpg.getPath(), file.getPath());
         Assert.assertEquals(message.exitCode, 0);
         Assert.assertTrue(file.exists());
-        JPEGImageDecoder decoder = new JPEGImageDecoder(
-                new FileImageSource(jpg.getPath()),
-                Files.newInputStream(Paths.get(jpg.getPath())));
         try {
-            decoder.produceImage();
+            ImageIO.read(new File(jpg.getPath()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
