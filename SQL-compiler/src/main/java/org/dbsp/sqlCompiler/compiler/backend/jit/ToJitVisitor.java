@@ -396,7 +396,7 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
             writer.println(json);
             writer.close();
             if (compile)
-                Utilities.compileAndTestJit("../../database-stream-processor", jsonFile);
+                Utilities.compileAndTestJit("../../dbsp", jsonFile);
         } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(ex);
         }

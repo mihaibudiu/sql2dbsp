@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#dbsp = { path = "../../../database-stream-processor.git" }
-dbsp = { git = "https://github.com/vmware/database-stream-processor.git", default-features = false }
+#dbsp = { path = "../../../dbsp.git" }
+dbsp = { git = "https://github.com/feldera/dbsp.git", default-features = false }
 rust_decimal = { version = "1.29" }
 sqllib = { path = "../sqllib" }

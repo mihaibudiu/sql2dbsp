@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dbsp = { git = "https://github.com/vmware/database-stream-processor.git", features = ["with-serde"], default-features = false }
-dbsp_adapters = { git = "https://github.com/vmware/database-stream-processor.git", default-features = false }
-#dbsp = { path = "../../database-stream-processor", features = ["with-serde"] }
-#dbsp_adapters = { path = "../../database-stream-processor/adapters" }
+dbsp = { git = "https://github.com/feldera/dbsp.git", features = ["with-serde"], default-features = false }
+dbsp_adapters = { git = "https://github.com/feldera/dbdsp.git", default-features = false }
+#dbsp = { path = "../../dbsp", features = ["with-serde"] }
+#dbsp_adapters = { path = "../../dbsp/adapters" }
 tuple = { path = "../lib/tuple" }
 sqllib = { path = "../lib/sqllib" }
 sqlvalue = { path = "../lib/sqlvalue" }

@@ -449,7 +449,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
     static final Map<String, JITBinaryInstruction.Operation> opNames = new HashMap<>();
 
     static {
-        // https://github.com/vmware/database-stream-processor/blob/dataflow-jit/crates/dataflow-jit/src/ir/expr.rs, the BinaryOpKind enum
+        // https://github.com/feldera/dbsp/blob/dataflow-jit/crates/dataflow-jit/src/ir/expr.rs, the BinaryOpKind enum
         opNames.put("+", JITBinaryInstruction.Operation.ADD);
         opNames.put("-", JITBinaryInstruction.Operation.SUB);
         opNames.put("*", JITBinaryInstruction.Operation.MUL);
