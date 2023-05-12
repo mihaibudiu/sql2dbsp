@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#dbsp = { path = "../../../dbsp" }
-dbsp = { git = "https://github.com/feldera/dbsp.git", default-features = false }
+dbsp = { path = "../../../dbsp/crates/dbsp" }
+#dbsp = { git = "ssh://git@github.com/feldera/dbsp.git", default-features = false }

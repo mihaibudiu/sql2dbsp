@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 md5 = { version = "0.7.0" }
 sqlvalue = { path = "../sqlvalue" }
-#dbsp = { path = "../../../dbsp.git" }
-dbsp = { git = "https://github.com/feldera/dbsp.git", default-features = false }
+dbsp = { path = "../../../dbsp/crates/dbsp" }
+#dbsp = { git = "ssh://git@github.com/feldera/dbsp.git", default-features = false }
 size-of = { version = "0.1.5", features = ["rust_decimal"] }

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dbsp = { git = "https://github.com/feldera/dbsp.git" }
-#dbsp = { path = "../../../dbsp.git" }
+dbsp = { path = "../../../dbsp/crates/dbsp" }
+#dbsp = { git = "ssh://git@github.com/feldera/dbsp.git" }
 sqlx = { version = "0.6.2" }
 rust_decimal = { version = "1.29", features = ["maths"] }
 geo = { version = "0.23" }

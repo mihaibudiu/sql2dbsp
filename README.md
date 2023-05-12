@@ -1,4 +1,4 @@
-![Tests](https://github.com/vmware/sql-to-dbsp-compiler/actions/workflows/ci.yml/badge.svg)
+![Tests](https://github.com/feldera/sql2dbsp/actions/workflows/ci.yml/badge.svg)
 
 # SQL to DBSP compiler
 
