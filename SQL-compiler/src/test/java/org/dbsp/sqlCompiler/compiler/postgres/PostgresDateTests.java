@@ -129,7 +129,7 @@ public class PostgresDateTests extends BaseSQLTests {
      * Convert a date from a MM-DD-YYYY format (which is used in the Postgres output)
      * to YYYY-MM-DD
      */
-    static DBSPLiteral reformatDate(@Nullable String date) {
+    static DBSPExpression reformatDate(@Nullable String date) {
         if (date == null)
             return DBSPLiteral.none(DBSPTypeTimestamp.NULLABLE_INSTANCE);
         try {

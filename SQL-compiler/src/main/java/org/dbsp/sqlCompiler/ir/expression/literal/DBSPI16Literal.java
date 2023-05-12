@@ -23,29 +23,38 @@
 
 package org.dbsp.sqlCompiler.ir.expression.literal;
 
-import org.apache.calcite.util.TimeString;
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
-import org.dbsp.sqlCompiler.ir.type.DBSPType;
-import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeTime;
+import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeInteger;
 
 import javax.annotation.Nullable;
 
-public class DBSPTimeLiteral extends DBSPLiteral {
-    public DBSPTimeLiteral(@Nullable Object node, DBSPType type, TimeString value) {
-        super(node, type, value);
+public class DBSPI16Literal extends DBSPLiteral {
+    @Nullable
+    public final Short value;
+
+    public DBSPI16Literal() {
+        this(null, true);
     }
 
-    public DBSPTimeLiteral(String value, boolean mayBeNull) {
-        super(null, DBSPTypeTime.INSTANCE.setMayBeNull(mayBeNull), new TimeString(value));
+    public DBSPI16Literal(short value) {
+        this(value, false);
     }
 
-    public DBSPTimeLiteral() {
-        super(null, DBSPTypeTime.NULLABLE_INSTANCE, null);
+    public DBSPI16Literal(@Nullable Short value, boolean nullable) {
+        super(null, DBSPTypeInteger.SIGNED_16.setMayBeNull(nullable), value);
+        if (value == null && !nullable)
+            throw new RuntimeException("Null value with non-nullable type");
+        this.value = value;
     }
 
     @Override
     public void accept(InnerVisitor visitor) {
         if (!visitor.preorder(this)) return;
         visitor.postorder(this);
+    }
+
+    public DBSPTypeInteger getIntegerType() {
+        assert this.type != null;
+        return this.type.to(DBSPTypeInteger.class);
     }
 }

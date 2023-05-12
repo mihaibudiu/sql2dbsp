@@ -508,6 +508,11 @@ public abstract class InnerVisitor {
         if (this.visitSuper) return this.preorder((DBSPExpression) node);
         else return true;
     }
+
+    public boolean preorder(DBSPNullLiteral node) {
+        if (this.visitSuper) return this.preorder((DBSPLiteral) node);
+        else return true;
+    }
     
     public boolean preorder(DBSPVecLiteral node) {
         if (this.visitSuper) return this.preorder((DBSPLiteral) node);
@@ -565,6 +570,11 @@ public abstract class InnerVisitor {
     }
 
     public boolean preorder(DBSPStringLiteral node) {
+        if (this.visitSuper) return this.preorder((DBSPLiteral) node);
+        else return true;
+    }
+
+    public boolean preorder(DBSPI16Literal node) {
         if (this.visitSuper) return this.preorder((DBSPLiteral) node);
         else return true;
     }
@@ -972,6 +982,10 @@ public abstract class InnerVisitor {
         if (this.visitSuper) this.postorder((DBSPLiteral) node);
     }
 
+    public void postorder(DBSPNullLiteral node) {
+        if (this.visitSuper) this.postorder((DBSPLiteral) node);
+    }
+
     public void postorder(DBSPVecLiteral node) {
         if (this.visitSuper) this.postorder((DBSPLiteral) node);
     }
@@ -997,6 +1011,10 @@ public abstract class InnerVisitor {
     }
 
     public void postorder(DBSPStringLiteral node) {
+        if (this.visitSuper) this.postorder((DBSPLiteral) node);
+    }
+
+    public void postorder(DBSPI16Literal node) {
         if (this.visitSuper) this.postorder((DBSPLiteral) node);
     }
 

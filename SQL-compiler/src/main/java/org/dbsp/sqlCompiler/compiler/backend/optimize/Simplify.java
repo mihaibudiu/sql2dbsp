@@ -29,7 +29,7 @@ import org.dbsp.sqlCompiler.ir.expression.DBSPCastExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPIfExpression;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPBoolLiteral;
-import org.dbsp.sqlCompiler.ir.expression.literal.DBSPIsNullExpression;
+import org.dbsp.sqlCompiler.ir.expression.DBSPIsNullExpression;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeBool;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeNull;
@@ -104,13 +104,19 @@ public class Simplify extends InnerExpressionRewriteVisitor {
         DBSPExpression result = expression;
         if (expression.operation.equals("&&")) {
             if (left.is(DBSPBoolLiteral.class)) {
-                if (Objects.requireNonNull(left.to(DBSPBoolLiteral.class).value)) {
+                DBSPBoolLiteral bLeft = left.to(DBSPBoolLiteral.class);
+                if (bLeft.isNull) {
+                    result = bLeft;
+                } else if (bLeft.getNonNullValue(Boolean.class)) {
                     result = right;
                 } else {
                     result = left;
                 }
             } else if (right.is(DBSPBoolLiteral.class)) {
-                if (Objects.requireNonNull(right.to(DBSPBoolLiteral.class).value)) {
+                DBSPBoolLiteral bRight = right.to(DBSPBoolLiteral.class);
+                if (bRight.isNull) {
+                    result = left;
+                } else if (bRight.getNonNullValue(Boolean.class)) {
                     result = left;
                 } else {
                     result = right;
@@ -119,13 +125,19 @@ public class Simplify extends InnerExpressionRewriteVisitor {
         } else if (expression.operation.equals("||") &&
             expression.getNonVoidType().is(DBSPTypeBool.class)) {
             if (left.is(DBSPBoolLiteral.class)) {
-                if (Objects.requireNonNull(left.to(DBSPBoolLiteral.class).value)) {
+                DBSPBoolLiteral bLeft = left.to(DBSPBoolLiteral.class);
+                if (bLeft.isNull) {
+                    result = bLeft;
+                } else if (bLeft.getNonNullValue(Boolean.class)) {
                     result = left;
                 } else {
                     result = right;
                 }
             } else if (right.is(DBSPBoolLiteral.class)) {
-                if (Objects.requireNonNull(right.to(DBSPBoolLiteral.class).value)) {
+                DBSPBoolLiteral bRight = right.to(DBSPBoolLiteral.class);
+                if (bRight.isNull) {
+                    result = left;
+                } else if (bRight.getNonNullValue(Boolean.class)) {
                     result = right;
                 } else {
                     result = left;

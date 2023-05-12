@@ -31,6 +31,10 @@ import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeDate;
 import javax.annotation.Nullable;
 
 public class DBSPDateLiteral extends DBSPLiteral {
+    public DBSPDateLiteral() {
+        super(null, DBSPTypeDate.NULLABLE_INSTANCE, null);
+    }
+
     public DBSPDateLiteral(@Nullable Object node, DBSPType type, DateString value) {
         super(node, type, value.getDaysSinceEpoch());
     }

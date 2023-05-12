@@ -29,20 +29,29 @@ import org.dbsp.sqlCompiler.ir.expression.IDBSPContainer;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeVec;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a (constant) vector described by its elements.
  */
 public class DBSPVecLiteral extends DBSPLiteral implements IDBSPContainer {
+    @Nullable
     public final List<DBSPExpression> data;
     public final DBSPTypeVec vecType;
 
     public DBSPVecLiteral(DBSPType elementType) {
         super(null, new DBSPTypeVec(elementType), 0); // The 0 is not used
         this.data = new ArrayList<>();
-        this.vecType = new DBSPTypeVec(elementType);
+        this.vecType = this.getNonVoidType().to(DBSPTypeVec.class);
+    }
+
+    public DBSPVecLiteral(DBSPType elementType, boolean isNull) {
+        super(null, new DBSPTypeVec(elementType), null);
+        this.data = null;
+        this.vecType = this.getNonVoidType().to(DBSPTypeVec.class);
     }
 
     public DBSPVecLiteral(DBSPExpression... data) {
@@ -66,24 +75,24 @@ public class DBSPVecLiteral extends DBSPLiteral implements IDBSPContainer {
         if (!expression.getNonVoidType().sameType(this.getElementType()))
             throw new RuntimeException("Added element " + expression + " type " +
                     expression.getType() + " does not match vector type " + this.getElementType());
-        this.data.add(expression);
+        Objects.requireNonNull(this.data).add(expression);
     }
 
     public void add(DBSPVecLiteral other) {
         if (!this.getNonVoidType().sameType(other.getNonVoidType()))
             throw new RuntimeException("Added vectors do not have the same type " +
                     this.getElementType() + " vs " + other.getElementType());
-        other.data.forEach(this::add);
+        Objects.requireNonNull(other.data).forEach(this::add);
     }
 
     public int size() {
-        return this.data.size();
+        return Objects.requireNonNull(this.data).size();
     }
 
     @Override
     public void accept(InnerVisitor visitor) {
         if (!visitor.preorder(this)) return;
-        for (DBSPExpression expr: this.data)
+        for (DBSPExpression expr: Objects.requireNonNull(this.data))
             expr.accept(visitor);
         visitor.postorder(this);
     }

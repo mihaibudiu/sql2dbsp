@@ -177,7 +177,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
      * Convert a date from a format like Sat Feb 16 17:32:01 1996 to
      * a format like 1996-02-16 17:32:01
      */
-    static DBSPLiteral convertDate(@Nullable String date) {
+    static DBSPExpression convertDate(@Nullable String date) {
         if (date == null)
             return DBSPLiteral.none(DBSPTypeTimestamp.NULLABLE_INSTANCE);
         for (SimpleDateFormat input: inputFormats) {
@@ -881,7 +881,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
             expressions[columns - 1] = new DBSPI64Literal((long)Double.parseDouble(fields[6].trim()), true);
             tuples[j] = new DBSPTupleExpression(expressions);
         }
-        DBSPLiteral none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
+        DBSPExpression none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
         tuples[data.length] = new DBSPTupleExpression(convertDate(null), none, none, none, none, none, none);
         this.testQuery(query, new DBSPZSetLiteral(tuples), true);
     }
@@ -972,7 +972,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
                 expressions[i] = new DBSPI64Literal(Long.parseLong(fields[i].trim()), true);
             tuples[j] = new DBSPTupleExpression(expressions);
         }
-        DBSPLiteral none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
+        DBSPExpression none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
         tuples[data.length] = new DBSPTupleExpression(convertDate(null), none, none, none);
         this.testQuery(query, new DBSPZSetLiteral(tuples), true);
     }
@@ -1068,7 +1068,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
             }
             tuples[j] = new DBSPTupleExpression(expressions);
         }
-        DBSPLiteral none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
+        DBSPExpression none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
         tuples[data.length] = new DBSPTupleExpression(convertDate(null), none, none, none, none, none);
         this.testQuery(query, new DBSPZSetLiteral(tuples), true);
     }
@@ -1168,7 +1168,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
             expressions[4] = new DBSPI64Literal((long)Double.parseDouble(fields[5].trim()), true);
             tuples[j] = new DBSPTupleExpression(expressions);
         }
-        DBSPLiteral none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
+        DBSPExpression none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
         tuples[data.length] = new DBSPTupleExpression(convertDate(null), none, none, none, none);
         this.testQuery(query, new DBSPZSetLiteral(tuples), true);
     }
@@ -1269,7 +1269,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
             expressions[4] = new DBSPI64Literal((long)Double.parseDouble(fields[5].trim()), true);
             tuples[j] = new DBSPTupleExpression(expressions);
         }
-        DBSPLiteral none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
+        DBSPExpression none = DBSPLiteral.none(DBSPTypeInteger.SIGNED_64.setMayBeNull(true));
         tuples[data.length] = new DBSPTupleExpression(convertDate(null), none, none, none, none);
         this.testQuery(query, new DBSPZSetLiteral(tuples), true);
     }

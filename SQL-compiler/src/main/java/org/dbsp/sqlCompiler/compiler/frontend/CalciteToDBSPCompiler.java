@@ -543,7 +543,7 @@ public class CalciteToDBSPCompiler extends RelVisitor
 
         DBSPVariablePath var = rowType.ref().var("r");
         DBSPExpression some = var.applyClone().some();
-        DBSPLiteral none = DBSPLiteral.none(some.getNonVoidType());
+        DBSPExpression none = DBSPLiteral.none(some.getNonVoidType());
         // Build a condition that checks whether any of the key fields is null.
         @Nullable
         DBSPExpression condition = null;

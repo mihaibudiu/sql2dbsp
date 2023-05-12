@@ -79,8 +79,8 @@ public class ToCsvVisitor extends InnerVisitor {
     @Override
     public boolean preorder(DBSPTimestampLiteral literal) {
         try {
-            if (literal.value != null)
-                this.appendable.append(Long.toString((Long)literal.value));
+            if (!literal.isNull)
+                this.appendable.append(Long.toString(literal.getNonNullValue(Long.class)));
             else
                 this.appendable.append(this.nullRepresentation.get());
         } catch (IOException ex) {

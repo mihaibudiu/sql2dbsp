@@ -85,7 +85,7 @@ public class JITLiteral extends JITValue {
 
     @SuppressWarnings("DataFlowIssue")
     public BaseJsonNode getValueAsJson() {
-        boolean isNull = this.literal.value == null;
+        boolean isNull = this.literal.isNull;
         if (this.literal.is(DBSPI32Literal.class)) {
             return isNull ? new IntNode(0) : new IntNode(this.literal.to(DBSPI32Literal.class).value);
         } else if (this.literal.is(DBSPI64Literal.class)) {

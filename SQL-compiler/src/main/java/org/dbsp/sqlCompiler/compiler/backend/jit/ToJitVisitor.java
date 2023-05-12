@@ -26,7 +26,6 @@ package org.dbsp.sqlCompiler.compiler.backend.jit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.dbsp.sqlCompiler.circuit.DBSPCircuit;
-import org.dbsp.sqlCompiler.circuit.IDBSPInnerNode;
 import org.dbsp.sqlCompiler.circuit.operator.*;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITParameterMapping;
@@ -107,6 +106,12 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
     }
 
     JITFunction convertFunction(DBSPClosureExpression function) {
+        BetaReduction reducer = new BetaReduction();
+        function = reducer.apply(function).to(DBSPClosureExpression.class);
+        SimpleClosureParameters scp = new SimpleClosureParameters();
+        function = scp.apply(function).to(DBSPClosureExpression.class);
+        function = this.tupleEachParameter(function);
+
         Logger.INSTANCE.from(this, 4)
                 .append("Converting to JIT")
                 .newline()
@@ -302,16 +307,9 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
         JITTupleLiteral init = new JITTupleLiteral(elementValue);
 
         DBSPClosureExpression closure = aggregate.getIncrement();
-        BetaReduction reducer = new BetaReduction();
-        IDBSPInnerNode reduced = reducer.apply(closure);
-        closure = Objects.requireNonNull(reduced).to(DBSPClosureExpression.class);
-        closure = this.tupleEachParameter(closure);
         JITFunction stepFn = this.convertFunction(closure);
 
         closure = aggregate.getPostprocessing();
-        reduced = reducer.apply(closure);
-        closure = Objects.requireNonNull(reduced).to(DBSPClosureExpression.class);
-        closure = this.tupleEachParameter(closure);
         JITFunction finishFn = this.convertFunction(closure);
 
         JITRowType accLayout = this.getTypeCatalog().convertTupleType(aggregate.defaultZeroType());
@@ -391,7 +389,7 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
             if (root == null)
                 throw new RuntimeException("No JSON produced from circuit");
             File jsonFile = File.createTempFile("out", ".json", new File("."));
-            jsonFile.deleteOnExit();
+            //jsonFile.deleteOnExit();
             PrintWriter writer = new PrintWriter(jsonFile);
             writer.println(json);
             writer.close();

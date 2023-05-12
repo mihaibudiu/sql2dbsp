@@ -30,13 +30,22 @@ import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeGeoPoint;
 import javax.annotation.Nullable;
 
 public class DBSPGeoPointLiteral extends DBSPLiteral {
+    // Null only when the literal itself is null.
+    @Nullable
     public final DBSPExpression left;
+    @Nullable
     public final DBSPExpression right;
 
     public DBSPGeoPointLiteral(@Nullable Object node, DBSPExpression left, DBSPExpression right) {
         super(node, DBSPTypeGeoPoint.INSTANCE, 0);  // value unused.
         this.left = left;
         this.right = right;
+    }
+
+    public DBSPGeoPointLiteral() {
+        super(null, DBSPTypeGeoPoint.NULLABLE_INSTANCE, null);
+        this.left = null;
+        this.right = null;
     }
 
     @Override

@@ -195,6 +195,6 @@ public class Utilities {
 
     public static void compileAndTestJit(String directory, File jsonFile) throws IOException, InterruptedException {
         runProcess(directory, "cargo", "run", "-p", "dataflow-jit",
-                "--bin", "dataflow-jit", "--features", "binary", "--", jsonFile.getAbsolutePath());
+                "--bin", "dataflow-jit", "--features", "binary", "--", "validate", jsonFile.getAbsolutePath());
     }
 }
