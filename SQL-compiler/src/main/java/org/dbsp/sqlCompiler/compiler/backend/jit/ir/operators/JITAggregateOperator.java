@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITTupleLiteral;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
+import org.dbsp.util.IIndentStream;
 
 import java.util.List;
 
@@ -52,14 +53,36 @@ public class JITAggregateOperator extends JITOperator {
     }
 
     @Override
+    public IIndentStream toString(IIndentStream builder) {
+        return super.toString(builder)
+                .increase()
+                .append("init")
+                .increase()
+                .append(this.init)
+                .decrease()
+                .newline()
+                .append("step")
+                .increase()
+                .append(this.stepFn)
+                .decrease()
+                .newline()
+                .append("finish")
+                .increase()
+                .append(this.finishFn)
+                .decrease()
+                .decrease();
+    }
+
+    @Override
     public BaseJsonNode asJson() {
-        ObjectNode result = jsonFactory().createObjectNode();
-        result.put("acc_layout", this.accLayout.getId());
-        result.put("step_layout", this.stepLayout.getId());
-        result.put("output_layout", this.type.getId());
-        result.set("finish_fn", this.finishFn.asJson());
-        result.set("step_fn", this.stepFn.asJson());
-        result.set("init", this.init.asJson());
+        ObjectNode result = (ObjectNode)super.asJson();
+        ObjectNode fold = this.getInnerObject(result);
+        fold.put("acc_layout", this.accLayout.getId());
+        fold.put("step_layout", this.stepLayout.getId());
+        fold.put("output_layout", this.type.to(JITRowType.class).getId());
+        fold.set("finish_fn", this.finishFn.asJson());
+        fold.set("step_fn", this.stepFn.asJson());
+        fold.set("init", this.init.asJson());
         return result;
     }
 }

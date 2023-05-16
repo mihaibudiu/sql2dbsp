@@ -23,7 +23,6 @@
 
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.operators;
 
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 
 import java.util.List;

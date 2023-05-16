@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITBoolType extends JITScalarType {
-    public static JITBoolType INSTANCE = new JITBoolType();
+    public static final JITBoolType INSTANCE = new JITBoolType();
 
     protected JITBoolType() {
         super("Bool");

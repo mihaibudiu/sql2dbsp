@@ -127,7 +127,7 @@ public class BaseSQLTests {
 
     @BeforeClass
     public static void prepareTests() throws IOException {
-        //generateLib();
+        generateLib();
         testsToRun.clear();
     }
 

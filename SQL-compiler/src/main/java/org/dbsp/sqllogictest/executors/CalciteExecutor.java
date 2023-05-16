@@ -66,7 +66,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
         return true;
     }
 
-    void query(SqlTestQuery query, TestStatistics statistics) throws UnsupportedEncodingException {
+    void query(SqlTestQuery query, TestStatistics statistics) {
         String q = query.query;
         Logger.INSTANCE.from(this, 1)
                 .append("Executing query ")
@@ -89,7 +89,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
 
     @Override
     public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-            throws SqlParseException, IOException, SQLException, NoSuchAlgorithmException {
+            throws IOException, SQLException {
         this.startTest();
         this.statementExecutor.establishConnection();
         this.statementExecutor.dropAllViews();

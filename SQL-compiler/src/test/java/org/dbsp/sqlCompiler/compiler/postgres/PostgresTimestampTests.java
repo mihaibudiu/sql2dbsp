@@ -24,7 +24,6 @@
 package org.dbsp.sqlCompiler.compiler.postgres;
 
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.dbsp.sqlCompiler.circuit.DBSPCircuit;
 import org.dbsp.sqlCompiler.compiler.BaseSQLTests;
 import org.dbsp.sqlCompiler.compiler.CompilerOptions;
@@ -64,7 +63,7 @@ public class PostgresTimestampTests extends BaseSQLTests {
     // INSERT INTO TIMESTAMP_TBL VALUES ('-infinity');
     // INSERT INTO TIMESTAMP_TBL VALUES ('infinity');
 
-    // Calcite is not very flexible with regards to timestamp formats
+    // Calcite is not very flexible regarding timestamp formats
     public DBSPCompiler compileQuery(String query, boolean optimize) {
         String data =
                 "CREATE TABLE TIMESTAMP_TBL (d1 timestamp(2) without time zone)\n;" +

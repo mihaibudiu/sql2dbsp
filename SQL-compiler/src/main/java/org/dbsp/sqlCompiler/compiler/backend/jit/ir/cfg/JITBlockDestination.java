@@ -24,6 +24,8 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg;
 
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionReference;
+import org.dbsp.util.IIndentStream;
 
 /**
  * When jumping to a new block one has to specify both
@@ -33,8 +35,20 @@ public class JITBlockDestination extends JITNode {
     final JITBlockReference target;
     final JITBlockArguments arguments;
 
-    public JITBlockDestination(JITBlockReference target, JITBlockArguments arguments) {
+    public JITBlockDestination(JITBlockReference target) {
         this.target = target;
-        this.arguments = arguments;
+        this.arguments = new JITBlockArguments();
+    }
+
+    public void addArgument(JITInstructionReference arg) {
+        this.arguments.addArgument(arg);
+    }
+
+    @Override
+    public IIndentStream toString(IIndentStream builder) {
+        return builder.append(this.target)
+                .append("(")
+                .append(this.arguments)
+                .append(")");
     }
 }

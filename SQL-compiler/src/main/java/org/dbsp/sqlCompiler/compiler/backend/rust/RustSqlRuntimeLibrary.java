@@ -170,10 +170,6 @@ public class RustSqlRuntimeLibrary {
             this.returnType = returnType;
         }
 
-        public DBSPApplyExpression getCall(DBSPExpression... arguments) {
-            return new DBSPApplyExpression(this.function, this.returnType, arguments);
-        }
-
         @Override
         public String toString() {
             return "FunctionDescription{" +
@@ -264,7 +260,7 @@ public class RustSqlRuntimeLibrary {
             for (String f : h.keySet()) {
                 String op = h.get(f);
                 if (this.handWritten.contains(op))
-                    // Hand-written rules in a separate library
+                    // Handwritten rules in a separate library
                     continue;
                 for (int i = 0; i < 4; i++) {
                     DBSPType leftType;

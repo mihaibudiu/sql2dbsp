@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITStringType extends JITScalarType {
-    public static JITStringType INSTANCE = new JITStringType();
+    public static final JITStringType INSTANCE = new JITStringType();
 
     protected JITStringType() {
         super("String");

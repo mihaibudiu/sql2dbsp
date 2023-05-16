@@ -155,7 +155,7 @@ public class LowerCircuitVisitor extends CircuitCloneVisitor {
 
     @Override
     public void postorder(DBSPFlatMapOperator node) {
-        DBSPOperator result = node;
+        DBSPOperator result;
         if (node.getFunction().is(DBSPFlatmap.class)) {
             List<DBSPOperator> sources = Linq.map(node.inputs, this::mapped);
             DBSPExpression function = this.rewriteFlatmap(node.getFunction().to(DBSPFlatmap.class));

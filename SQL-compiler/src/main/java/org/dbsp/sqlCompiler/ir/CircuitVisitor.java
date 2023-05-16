@@ -100,7 +100,7 @@ public abstract class CircuitVisitor extends IdGen implements Function<DBSPCircu
         return true;
     }
 
-    public boolean preorder(IDBSPOuterNode node) { return true; }
+    public boolean preorder(IDBSPOuterNode ignoredNode) { return true; }
 
     public boolean preorder(IDBSPDeclaration node) {
         if (this.visitSuper) return this.preorder((IDBSPOuterNode) node);
@@ -228,9 +228,10 @@ public abstract class CircuitVisitor extends IdGen implements Function<DBSPCircu
 
     ////////////////////////////////////
 
+    @SuppressWarnings("EmptyMethod")
     public void postorder(DBSPCircuit ignored) {}
 
-    public void postorder(DBSPPartialCircuit circuit) {}
+    public void postorder(DBSPPartialCircuit ignoredCircuit) {}
 
     public void postorder(DBSPOperator ignored) {}
 

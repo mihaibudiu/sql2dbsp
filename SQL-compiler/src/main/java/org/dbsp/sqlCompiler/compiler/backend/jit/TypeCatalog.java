@@ -31,6 +31,7 @@ import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeRef;
+import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeTupleBase;
 
 import java.util.HashMap;
@@ -50,6 +51,9 @@ public class TypeCatalog {
         if (type.is(DBSPTypeRef.class))
             type = type.to(DBSPTypeRef.class).type;
         DBSPTypeTupleBase tuple = type.to(DBSPTypeTupleBase.class);
+        if (tuple.tupFields.length == 0)
+            // Raw tuples and normal tuples represented in the same way in the JIT
+            tuple = new DBSPTypeTuple();
         if (this.typeId.containsKey(tuple))
             return this.typeId.get(tuple);
         long id = this.typeId.size() + 1;  // 0 is not a valid id

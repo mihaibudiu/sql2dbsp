@@ -34,7 +34,7 @@ public class SqlTestQuery implements ISqlTestOperation {
     public String query;
     @Nullable
     public String name;
-    public String file;
+    public final String file;
     public int line;
 
     public final SqlTestQueryOutputDescription outputDescription;

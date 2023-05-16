@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITISizeType extends JITScalarType {
-    public static JITISizeType INSTANCE = new JITISizeType();
+    public static final JITISizeType INSTANCE = new JITISizeType();
 
     protected JITISizeType() {
         super("Isize");

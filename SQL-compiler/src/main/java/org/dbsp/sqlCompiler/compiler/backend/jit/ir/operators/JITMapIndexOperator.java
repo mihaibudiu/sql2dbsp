@@ -23,34 +23,32 @@
 
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.operators;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITKVType;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 
 import java.util.List;
 
 public class JITMapIndexOperator extends JITOperator {
     public final JITRowType inputType;
-    public final JITRowType keyType;
-    public final JITRowType valueType;
+    public final JITKVType kvType;
 
-    public JITMapIndexOperator(long id, JITRowType keyType, JITRowType valueType, JITRowType inputType,
+    public JITMapIndexOperator(long id, JITKVType kvType, JITRowType inputType,
                                List<JITOperatorReference> inputs, JITFunction function) {
         // A MapIndex operator compiles to a Map representation that
         // returns elements with type "Map" instead of "Set"
-        super(id, "Map", "map_fn", keyType, inputs, function, null);
+        super(id, "Map", "map_fn", kvType, inputs, function, null);
         this.inputType = inputType;
-        this.keyType = keyType;
-        this.valueType = valueType;
+        this.kvType = kvType;
     }
 
     @Override
     public BaseJsonNode asJson() {
         ObjectNode result = (ObjectNode)super.asJson();
-        this.addIndexedZSetLayout(result, "output_layout", this.keyType, this.valueType);
-        this.addZSetLayout(result, "input_layout", this.inputType);
+        this.kvType.addDescriptionTo(result, "output_layout");
+        this.inputType.addDescriptionTo(result, "input_layout");
         return result;
     }
 }

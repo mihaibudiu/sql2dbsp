@@ -132,19 +132,4 @@ public abstract class DBSPLiteral extends DBSPExpression {
     public <T> T getNonNullValue(Class<T> clazz) {
         return clazz.cast(Objects.requireNonNull(this.value));
     }
-
-    /*
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DBSPLiteral that = (DBSPLiteral) o;
-        return isNull == that.isNull && Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(isNull, value);
-    }
-     */
 }

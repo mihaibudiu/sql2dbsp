@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 /**
  * A rust expression that represents a range left .. right
  */
+@SuppressWarnings("GrazieInspection")
 public class DBSPRangeExpression extends DBSPExpression {
     @Nullable
     public final DBSPExpression left;
@@ -61,5 +62,4 @@ public class DBSPRangeExpression extends DBSPExpression {
             this.right.accept(visitor);
         visitor.postorder(this);
     }
-
 }

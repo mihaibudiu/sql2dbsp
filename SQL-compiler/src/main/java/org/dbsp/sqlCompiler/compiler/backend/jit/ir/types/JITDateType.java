@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITDateType extends JITScalarType {
-    public static JITDateType INSTANCE = new JITDateType();
+    public static final JITDateType INSTANCE = new JITDateType();
 
     protected JITDateType() {
         super("Date");

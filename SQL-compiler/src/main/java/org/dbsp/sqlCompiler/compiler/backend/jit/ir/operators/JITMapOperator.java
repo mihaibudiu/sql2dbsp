@@ -26,14 +26,15 @@ package org.dbsp.sqlCompiler.compiler.backend.jit.ir.operators;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.IJitKvOrRowType;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 
 import java.util.List;
 
 public class JITMapOperator extends JITOperator {
-    public final JITRowType inputType;
+    public final IJitKvOrRowType inputType;
 
-    public JITMapOperator(long id, JITRowType outputType, JITRowType inputType,
+    public JITMapOperator(long id, JITRowType outputType, IJitKvOrRowType inputType,
                           List<JITOperatorReference> inputs, JITFunction function) {
         super(id, "Map", "map_fn", outputType, inputs, function, null);
         this.inputType = inputType;
@@ -43,10 +44,8 @@ public class JITMapOperator extends JITOperator {
     public BaseJsonNode asJson() {
         ObjectNode result = (ObjectNode)super.asJson();
         ObjectNode map = this.getInnerObject(result);
-        ObjectNode layout = map.putObject("output_layout");
-        layout.put("Set", this.type.getId());
-        layout = map.putObject("input_layout");
-        layout.put("Set", this.inputType.getId());
+        this.inputType.addDescriptionTo(map, "input_layout");
+        this.type.addDescriptionTo(map, "output_layout");
         return result;
     }
 }

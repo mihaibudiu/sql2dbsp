@@ -24,14 +24,13 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.operators;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.IJITId;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITFunction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITReference;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.IJitKvOrRowType;
 import org.dbsp.util.IIndentStream;
 
 import javax.annotation.Nullable;
@@ -41,7 +40,7 @@ public abstract class JITOperator extends JITNode implements IJITId {
     public final long id;
     public final String name;
     public final String functionName;
-    public final JITRowType type;
+    public final IJitKvOrRowType type;
     public final List<JITOperatorReference> inputs;
     @Nullable
     public final JITFunction function;
@@ -49,7 +48,7 @@ public abstract class JITOperator extends JITNode implements IJITId {
     public final String comment;
 
     protected JITOperator(long id, String name, String functionName,
-                          JITRowType type, List<JITOperatorReference> inputs,
+                          IJitKvOrRowType type, List<JITOperatorReference> inputs,
                           @Nullable
                           JITFunction function,
                           @Nullable String comment) {
@@ -117,19 +116,6 @@ public abstract class JITOperator extends JITNode implements IJITId {
         if (!(result instanceof ObjectNode))
             throw new RuntimeException("Expected the field " + this.name + " to be an Object");
         return (ObjectNode)result;
-    }
-
-    void addZSetLayout(ObjectNode parent, String label, JITRowType type) {
-        ObjectNode set = parent.putObject(label);
-        set.put("Set", type.getId());
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    void addIndexedZSetLayout(ObjectNode parent, String label, JITRowType keyType, JITRowType valueType) {
-        ObjectNode map = parent.putObject(label);
-        ArrayNode array = map.putArray("Map");
-        array.add(keyType.getId());
-        array.add(valueType.getId());
     }
 
     @Override

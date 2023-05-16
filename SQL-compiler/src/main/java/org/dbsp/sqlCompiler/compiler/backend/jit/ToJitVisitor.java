@@ -60,7 +60,7 @@ import java.util.*;
  * Generates an encoding of the circuit as a JITProgram representation.
  */
 public class ToJitVisitor extends CircuitVisitor implements IModule {
-    JITProgram program;
+    final JITProgram program;
 
     public ToJitVisitor() {
         super(true);
@@ -78,6 +78,8 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
     public static DBSPType resolveWeightType(@Nullable DBSPType type) {
         if (type == null)
             return null;
+        if (type.is(DBSPTypeRef.class))
+            type = type.to(DBSPTypeRef.class).type;
         if (type.is(DBSPTypeUser.class)) {
             DBSPTypeUser user = type.to(DBSPTypeUser.class);
             if (user.name.equals(TypeCompiler.WEIGHT_TYPE_NAME))
@@ -106,10 +108,16 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
     }
 
     JITFunction convertFunction(DBSPClosureExpression function) {
+        Logger.INSTANCE.from(this, 4)
+                .append("Canonicalizing")
+                .newline()
+                .append(function.toString())
+                .newline();
+
         BetaReduction reducer = new BetaReduction();
         function = reducer.apply(function).to(DBSPClosureExpression.class);
         SimpleClosureParameters scp = new SimpleClosureParameters();
-        function = scp.apply(function).to(DBSPClosureExpression.class);
+        function = scp.rewriteClosure(function);
         function = this.tupleEachParameter(function);
 
         Logger.INSTANCE.from(this, 4)
@@ -133,6 +141,19 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
                 .append(result.toAssembly())
                 .newline();
         return result;
+    }
+
+    IJitKvOrRowType convertType(DBSPType type) {
+        if (type.is(DBSPTypeZSet.class)) {
+            DBSPTypeZSet t = type.to(DBSPTypeZSet.class);
+            DBSPType elementType = t.getElementType();
+            return this.getTypeCatalog().convertTupleType(elementType);
+        } else {
+            DBSPTypeIndexedZSet t = type.to(DBSPTypeIndexedZSet.class);
+            JITRowType keyType = this.getTypeCatalog().convertTupleType(t.keyType);
+            JITRowType valueType = this.getTypeCatalog().convertTupleType(t.elementType);
+            return new JITKVType(keyType, valueType);
+        }
     }
 
     @Override
@@ -167,7 +188,7 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
         JITRowType keyType = this.getTypeCatalog().convertTupleType(operator.keType);
         JITRowType valueType = this.getTypeCatalog().convertTupleType(operator.valueType);
         JITOperator result = new JITMapIndexOperator(operator.id,
-                keyType, valueType, conversion.type,
+                new JITKVType(keyType, valueType), conversion.type,
                 conversion.inputs, conversion.getFunction());
         this.program.add(result);
         return false;
@@ -176,9 +197,9 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
     @Override
     public boolean preorder(DBSPMapOperator operator) {
         OperatorConversion conversion = new OperatorConversion(operator);
-        JITRowType inputType = this.getTypeCatalog().convertTupleType(
-                operator.input().getOutputZSetElementType());
-        JITOperator result = new JITMapOperator(operator.id, conversion.type, inputType,
+        DBSPType inputType = operator.input().outputType;
+        IJitKvOrRowType jitInputType = this.convertType(inputType);
+        JITOperator result = new JITMapOperator(operator.id, conversion.type, jitInputType,
                 conversion.inputs, conversion.getFunction());
         this.program.add(result);
         return false;
@@ -262,7 +283,7 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
      * into a parameter with a 1-dimensional tuple type.  E.g.
      * (t: Tuple1<i32>, u: i32) { body }
      * is converted to
-     * (t: Tuple1<i32>, u: tuple1<i32>) { let u: i32 = u.0; body }
+     * (t: Tuple1<i32>, u: Tuple1<i32>) { let u: i32 = u.0; body }
      * Pre-condition: the closure body is a BlockExpression.
      * The JIT representation only supports tuples for closure parameters.
      */
@@ -272,7 +293,7 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
         int index = 0;
         for (DBSPParameter param: closure.parameters) {
             if (isScalarType(param.type)) {
-                DBSPParameter tuple = new DBSPParameter(param.pattern, new DBSPTypeRawTuple(param.type));
+                DBSPParameter tuple = new DBSPParameter(param.pattern, new DBSPTypeTuple(param.type));
                 statements.add(new DBSPLetStatement(
                         tuple.asVariableReference().variable,
                         tuple.asVariableReference().field(0)));
@@ -389,12 +410,13 @@ public class ToJitVisitor extends CircuitVisitor implements IModule {
             if (root == null)
                 throw new RuntimeException("No JSON produced from circuit");
             File jsonFile = File.createTempFile("out", ".json", new File("."));
-            //jsonFile.deleteOnExit();
             PrintWriter writer = new PrintWriter(jsonFile);
             writer.println(json);
             writer.close();
             if (compile)
                 Utilities.compileAndTestJit("../../dbsp", jsonFile);
+            // If we don't reach this point the file will survive for debugging
+            jsonFile.deleteOnExit();
         } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(ex);
         }

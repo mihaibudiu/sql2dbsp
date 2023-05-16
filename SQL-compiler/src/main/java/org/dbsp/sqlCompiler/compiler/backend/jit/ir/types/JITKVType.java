@@ -23,12 +23,15 @@
 
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * A pair type with two fields: a key type and a value type.
  */
-public class JITKVType extends JITType {
+@SuppressWarnings("GrazieInspection")
+public class JITKVType extends JITType implements IJitKvOrRowType {
     final JITRowType key;
     final JITRowType value;
 
@@ -38,12 +41,15 @@ public class JITKVType extends JITType {
     }
 
     @Override
-    public BaseJsonNode asJson() {
-        return super.asJson();
+    public boolean isScalarType() {
+        return false;
     }
 
     @Override
-    public boolean isScalarType() {
-        return false;
+    public void addDescriptionTo(ObjectNode parent, String label) {
+        ObjectNode map = parent.putObject(label);
+        ArrayNode array = map.putArray("Map");
+        array.add(this.key.getId());
+        array.add(this.value.getId());
     }
 }

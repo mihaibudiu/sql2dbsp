@@ -498,7 +498,7 @@ public class OtherTests extends BaseSQLTests implements IModule {
 
     @SuppressWarnings("SqlDialectInspection")
     @Test
-    public void HSQLDBTest() throws SQLException, UnsupportedEncodingException {
+    public void HSQLDBTest() throws SQLException {
         String jdbcUrl = "jdbc:hsqldb:mem:db";
         Connection connection = DriverManager.getConnection(jdbcUrl, "", "");
         try (Statement s = connection.createStatement()) {

@@ -61,7 +61,7 @@ public class JITConstantInstruction extends JITInstruction {
 
     @Override
     public String toString() {
-        return "Constant " + this.value.toString();
+        return "Constant " + this.value;
     }
 
     @Override

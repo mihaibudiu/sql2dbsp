@@ -23,7 +23,6 @@
 
 package org.dbsp.sqlCompiler.compiler.frontend.statements;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 

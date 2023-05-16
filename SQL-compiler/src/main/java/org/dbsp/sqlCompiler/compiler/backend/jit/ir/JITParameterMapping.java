@@ -35,7 +35,6 @@ import org.dbsp.sqlCompiler.ir.type.DBSPTypeRawTuple;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeRef;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
 import org.dbsp.util.Unimplemented;
-import org.dbsp.util.Utilities;
 
 import java.util.*;
 
@@ -63,7 +62,6 @@ public class JITParameterMapping {
         throw new Unimplemented("Conversion to Tuple", type);
     }
 
-
     /**
      * We are given a type that is a Tuple or RawTuple.
      * Expand it into a list of Tuple types as follows:
@@ -90,35 +88,13 @@ public class JITParameterMapping {
         return types;
     }
 
-    static class Decomposition {
-        /**
-         * Each field of a DBSPParameter becomes a separate JITParameter.
-         */
-        final List<JITParameter> parts;
-
-        Decomposition() {
-            this.parts = new ArrayList<>();
-        }
-
-        void addPart(JITParameter parameter) {
-            this.parts.add(parameter);
-        }
-    }
-
     /**
      * Each input parameter is mapped to a
      */
-    final Map<DBSPParameter, Decomposition> mapping = new HashMap<>();
     final TypeCatalog typeCatalog;
 
     public JITParameterMapping(TypeCatalog catalog) {
         this.typeCatalog = catalog;
-    }
-
-    Decomposition newDecomposition(DBSPParameter parameter) {
-        Decomposition result = new Decomposition();
-        Utilities.putNew(this.mapping, parameter, result);
-        return result;
     }
 
     int parameterIndex = 1;
@@ -127,16 +103,10 @@ public class JITParameterMapping {
 
     public void addInputParameter(DBSPParameter param) {
         DBSPType paramType = param.getNonVoidType();
-        List<DBSPTypeTuple> types = expandToTuples(paramType);
-        Decomposition decomposition = this.newDecomposition(param);
-        for (DBSPType paramFieldType: types) {
-            DBSPTypeTuple type = makeTupleType(paramFieldType);
-            JITRowType t = this.typeCatalog.convertTupleType(type);
-            JITParameter p = new JITParameter(this.parameterIndex, true, t);
-            decomposition.addPart(p);
-            this.allParameters.add(p);
-            this.parameterIndex++;
-        }
+        JITRowType t = this.typeCatalog.convertTupleType(paramType);
+        JITParameter p = new JITParameter(this.parameterIndex, true, t);
+        this.allParameters.add(p);
+        this.parameterIndex++;
     }
 
     /**
@@ -177,13 +147,5 @@ public class JITParameterMapping {
             this.outputParameters.add(new DBSPParameter(varName, type));
         }
         return JITUnitType.INSTANCE;
-    }
-
-    @Nullable
-    public JITParameter getParameterReference(DBSPParameter param, int fieldNo) {
-        if (!this.mapping.containsKey(param))
-            return null;
-        Decomposition decomp = this.mapping.get(param);
-        return decomp.parts.get(fieldNo);
     }
 }

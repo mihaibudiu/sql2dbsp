@@ -107,7 +107,7 @@ public class DBSPCompiler implements IModule, ICompilerComponent {
         this.options = options;
         this.mapper = new ObjectMapper();
         this.frontend = new CalciteCompiler(options);
-        this.midend = new CalciteToDBSPCompiler(this.frontend, true, options, this);
+        this.midend = new CalciteToDBSPCompiler(true, options, this);
         this.messages = new CompilerMessages(this);
         this.sources = new SourceFileContents();
         this.circuit = null;

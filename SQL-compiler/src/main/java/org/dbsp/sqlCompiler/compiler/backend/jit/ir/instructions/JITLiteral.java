@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITScalarType;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPBoolLiteral;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPDoubleLiteral;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPFloatLiteral;
@@ -44,9 +45,11 @@ import org.dbsp.util.Unimplemented;
 
 public class JITLiteral extends JITValue {
     public final DBSPLiteral literal;
+    public final JITScalarType type;
 
-    public JITLiteral(DBSPLiteral literal) {
+    public JITLiteral(DBSPLiteral literal, JITScalarType type) {
         this.literal = literal;
+        this.type = type;
     }
 
     public boolean mayBeNull() {
@@ -57,29 +60,17 @@ public class JITLiteral extends JITValue {
     public BaseJsonNode asJson() {
         ObjectNode result = jsonFactory().createObjectNode();
         ObjectNode value;
-        if (this.mayBeNull())
-            value = result.putObject("Nullable");
-        else
-            value = result.putObject("NonNull");
-        if (this.literal.isNull) {
-            return NullNode.getInstance();
-        } else {
-            if (this.literal.is(DBSPI32Literal.class)) {
-                value.put("I32", this.literal.to(DBSPI32Literal.class).value);
-            } else if (this.literal.is(DBSPI64Literal.class)) {
-                value.put("I64", this.literal.to(DBSPI64Literal.class).value);
-            } else if (this.literal.is(DBSPStringLiteral.class)) {
-                value.put("String", this.literal.to(DBSPStringLiteral.class).value);
-            } else if (this.literal.is(DBSPBoolLiteral.class)) {
-                value.put("Bool", this.literal.to(DBSPBoolLiteral.class).value);
-            } else if (this.literal.is(DBSPDoubleLiteral.class)) {
-                value.put("F64", this.literal.to(DBSPDoubleLiteral.class).value);
-            } else if (this.literal.is(DBSPFloatLiteral.class)) {
-                value.put("F32", this.literal.to(DBSPFloatLiteral.class).value);
+        if (this.mayBeNull()) {
+            if (this.literal.isNull) {
+                result.set("Nullable", NullNode.getInstance());
+                return result;
             } else {
-                throw new Unimplemented(this.literal);
+                value = result.putObject("Nullable");
             }
+        } else {
+            value = result.putObject("NonNull");
         }
+        value.set(this.type.toString(), this.getValueAsJson());
         return result;
     }
 
@@ -102,21 +93,6 @@ public class JITLiteral extends JITValue {
             throw new Unimplemented(this.literal);
         }
     }
-
-    /*
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JITLiteral that = (JITLiteral) o;
-        return literal.equals(that.literal);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(literal);
-    }
-     */
 
     public boolean isNull() {
         return this.literal.isNull;

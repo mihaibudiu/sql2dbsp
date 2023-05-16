@@ -79,10 +79,6 @@ public abstract class DBSPExpression
      */
     public DBSPExpression some() {
         DBSPType type = this.getNonVoidType();
-        /*
-        if (type.mayBeNull)
-            throw new RuntimeException("Wrapping nullable value in Some " + this);
-         */
         type = type.setMayBeNull(true);
         return new DBSPStructExpression(type.path(new DBSPPath("Some")), type, this);
     }
@@ -107,9 +103,5 @@ public abstract class DBSPExpression
             return this;
         }
         return new DBSPCastExpression(this.getNode(), this, to);
-    }
-
-    public boolean isNullable() {
-        return this.getNonVoidType().mayBeNull;
     }
 }

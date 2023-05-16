@@ -34,15 +34,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DBSPTupleExpression extends DBSPBaseTupleExpression {
-    public final DBSPExpression[] fields;
     public final boolean isNull;
-
-    public int size() { return this.fields.length; }
 
     public DBSPTupleExpression(@Nullable Object object, boolean mayBeNull, DBSPExpression... expressions) {
         super(object,
-                new DBSPTypeTuple(null, mayBeNull, Linq.map(expressions, DBSPExpression::getType, DBSPType.class)));
-        this.fields = expressions;
+                new DBSPTypeTuple(null, mayBeNull, Linq.map(expressions, DBSPExpression::getType, DBSPType.class)),
+                expressions);
         this.isNull = false;
     }
 
@@ -51,7 +48,6 @@ public class DBSPTupleExpression extends DBSPBaseTupleExpression {
      */
     public DBSPTupleExpression(DBSPTypeTuple type) {
         super(null, type);
-        this.fields = new DBSPExpression[0];
         this.isNull = true;
     }
 

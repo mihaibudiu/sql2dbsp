@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.IJITId;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITParameter;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITReference;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstruction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionReference;
@@ -83,7 +82,7 @@ public class JITBlock extends JITNode implements IJITId {
             body.add(i.asJson());
         }
         result.set("terminator", Objects.requireNonNull(this.terminator).asJson());
-        ArrayNode params = result.putArray("parameters");
+        ArrayNode params = result.putArray("params");
         for (JITBlockParameter param: this.parameters) {
             params.add(param.asJson());
         }
@@ -96,8 +95,9 @@ public class JITBlock extends JITNode implements IJITId {
         this.instructions.add(instruction);
     }
 
-    public void addParameter(JITInstructionReference instruction, JITType type) {
+    public JITInstructionReference addParameter(JITReference instruction, JITType type) {
         this.parameters.add(new JITBlockParameter(instruction, type));
+        return new JITInstructionReference(instruction.id);
     }
 
     public void terminate(JITBlockTerminator terminator) {
@@ -110,11 +110,18 @@ public class JITBlock extends JITNode implements IJITId {
     public IIndentStream toString(IIndentStream builder) {
         builder.append("block ")
                 .append(this.getId())
+                .append("(")
+                .joinI(", ", this.parameters)
+                .append(")")
                 .increase()
                 .intercalateI(System.lineSeparator(), this.instructions);
         if (this.terminator != null)
             // Terminator may be null while debugging
             builder.append(this.terminator);
         return builder.decrease();
+    }
+
+    public JITBlockDestination createDestination() {
+        return this.getBlockReference().createDestination();
     }
 }

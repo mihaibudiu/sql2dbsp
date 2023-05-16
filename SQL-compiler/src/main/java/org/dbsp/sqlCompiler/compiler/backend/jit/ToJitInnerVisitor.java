@@ -23,10 +23,10 @@
 
 package org.dbsp.sqlCompiler.compiler.backend.jit;
 
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITParameter;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITParameterMapping;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITReference;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITBlock;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITBlockReference;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITBlockDestination;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITBranchTerminator;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITJumpTerminator;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITReturnTerminator;
@@ -60,6 +60,7 @@ import org.dbsp.sqlCompiler.ir.statement.DBSPLetStatement;
 import org.dbsp.sqlCompiler.ir.statement.DBSPStatement;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
+import org.dbsp.sqlCompiler.ir.type.IsNumericType;
 import org.dbsp.sqlCompiler.ir.type.primitive.*;
 import org.dbsp.util.Unimplemented;
 import org.dbsp.util.Utilities;
@@ -113,6 +114,15 @@ public class ToJitInnerVisitor extends InnerVisitor {
             JITInstructionPair result = new JITInstructionPair(value, isNull);
             this.variables.put(varName, result);
             return result;
+        }
+
+        /**
+         * Add a variable whose definition is known.
+         * @param varName  Name of variable.
+         * @param pair     Expression that computed the value of the variable.
+         */
+        void addVariable(String varName, JITInstructionPair pair) {
+            this.variables.put(varName, pair);
         }
     }
 
@@ -201,7 +211,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
         return this.accept(new DBSPBoolLiteral(value));
     }
 
-    static JITScalarType convertScalarType(DBSPExpression expression) {
+    public static JITScalarType convertScalarType(DBSPExpression expression) {
         return JITScalarType.scalarType(expression.getNonVoidType());
     }
 
@@ -292,10 +302,10 @@ public class ToJitInnerVisitor extends InnerVisitor {
             onFalseBlock = this.newBlock();
             nextBlock = this.newBlock();
             JITBranchTerminator branch = new JITBranchTerminator(
-                    isNull, nextBlock.getBlockReference(),
-                    onFalseBlock.getBlockReference());
+                    isNull, nextBlock.createDestination(),
+                    onFalseBlock.createDestination());
             this.getCurrentBlock().terminate(branch);
-            this.currentBlock = onFalseBlock;
+            this.setCurrentBlock(onFalseBlock);
             // The function call will be inserted in the onFalseBlock
         }
 
@@ -306,13 +316,13 @@ public class ToJitInnerVisitor extends InnerVisitor {
         JITInstructionPair result;
 
         if (isNull.isValid()) {
-            JITBlockReference next = Objects.requireNonNull(nextBlock).getBlockReference();
-            JITJumpTerminator terminator = new JITJumpTerminator(next);
+            JITJumpTerminator terminator = new JITJumpTerminator(
+                    Objects.requireNonNull(nextBlock).createDestination());
             this.getCurrentBlock().terminate(terminator);
 
-            this.currentBlock = nextBlock;
+            this.setCurrentBlock(nextBlock);
             JITCopyInstruction copy = new JITCopyInstruction(this.nextInstructionId(), isNull, JITBoolType.INSTANCE);
-            this.currentBlock.add(copy);
+            this.getCurrentBlock().add(copy);
             result = new JITInstructionPair(call, copy);
         } else {
             result = new JITInstructionPair(call);
@@ -395,9 +405,9 @@ public class ToJitInnerVisitor extends InnerVisitor {
 
     @Override
     public boolean preorder(DBSPLiteral expression) {
-        JITLiteral literal = new JITLiteral(expression);
-        boolean mayBeNull = expression.getNonVoidType().mayBeNull;
         JITScalarType type = convertScalarType(expression);
+        JITLiteral literal = new JITLiteral(expression, type);
+        boolean mayBeNull = expression.getNonVoidType().mayBeNull;
         JITConstantInstruction value = new JITConstantInstruction(
                 this.nextInstructionId(), type, literal, true);
         this.add(value);
@@ -464,7 +474,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
         opNames.put("&&",JITBinaryInstruction.Operation.AND);
         opNames.put("|", JITBinaryInstruction.Operation.OR);
         opNames.put("||",JITBinaryInstruction.Operation.OR);
-        opNames.put("^", JITBinaryInstruction.Operation.OR);
+        opNames.put("^", JITBinaryInstruction.Operation.XOR);
         opNames.put("agg_max", JITBinaryInstruction.Operation.MAX);
         opNames.put("agg_min", JITBinaryInstruction.Operation.MIN);
     }
@@ -478,9 +488,65 @@ public class ToJitInnerVisitor extends InnerVisitor {
                     expression.left, expression.right);
             return false;
         }
-        if (expression.operation.equals("/")) {
-            // TODO: division by 0 returns null.
-            throw new Unimplemented(expression);
+        if (expression.operation.equals("/") &&
+                expression.left.getNonVoidType().is(DBSPTypeInteger.class)) {
+            // left / right
+            JITInstructionPair left = this.accept(expression.left);
+            JITInstructionPair right = this.accept(expression.right);
+
+            // division by 0 returns null.
+            IsNumericType numeric = expression.left.getNonVoidType().to(IsNumericType.class);
+            JITScalarType type = convertScalarType(expression.left);
+            DBSPLiteral numericZero = numeric.getZero();
+            JITLiteral jitZero = new JITLiteral(numericZero, type);
+            JITInstruction zero = this.add(
+                    new JITConstantInstruction(this.nextInstructionId(), type, jitZero, true));
+            // (right == 0)
+            JITInstruction compare = this.add(
+                    new JITBinaryInstruction(this.nextInstructionId(), JITBinaryInstruction.Operation.EQ,
+                            zero.getInstructionReference(), right.value, type));
+            JITBlock isZero = this.newBlock();
+            JITBlock isNotZero = this.newBlock();
+            JITBlock next = this.newBlock();
+            JITBlockDestination isZeroDestination = isZero.createDestination();
+            JITBlockDestination isNotZeroDestination = isNotZero.createDestination();
+            JITBranchTerminator branch = new JITBranchTerminator(
+                    compare.getInstructionReference(),
+                    isZeroDestination, isNotZeroDestination);
+            this.getCurrentBlock().terminate(branch);
+
+            // if (right == 0)
+            this.setCurrentBlock(isZero);
+            JITInstructionPair True = this.constantBool(true);
+            // isNull = true
+            JITBlockDestination zeroToNext = next.createDestination();
+            zeroToNext.addArgument(True.value);
+            // result can be 0
+            zeroToNext.addArgument(zero.getInstructionReference());
+            JITJumpTerminator jump = new JITJumpTerminator(zeroToNext);
+            isZero.terminate(jump);
+
+            // else
+            this.setCurrentBlock(isNotZero);
+            // isNull = false
+            JITInstructionPair False = this.constantBool(false);
+            // result = left / right (even if either is null this is hopefully fine).
+            JITInstruction div = this.add(
+                    new JITBinaryInstruction(this.nextInstructionId(), JITBinaryInstruction.Operation.DIV,
+                            left.value, right.value, type));
+            JITBlockDestination isNotZeroToNext = next.createDestination();
+            isNotZeroToNext.addArgument(False.value);
+            isNotZeroToNext.addArgument(div.getInstructionReference());
+            jump = new JITJumpTerminator(isNotZeroToNext);
+            isNotZero.terminate(jump);
+
+            // join point
+            this.setCurrentBlock(next);
+            JITInstructionReference value = next.addParameter(new JITReference(this.nextInstructionId()), type);
+            JITInstructionReference isNull = next.addParameter(new JITReference(this.nextInstructionId()), JITBoolType.INSTANCE);
+            JITInstructionPair result = new JITInstructionPair(value, isNull);
+            this.map(expression, result);
+            return false;
         }
 
         JITInstructionPair leftId = this.accept(expression.left);
@@ -762,35 +828,23 @@ public class ToJitInnerVisitor extends InnerVisitor {
     @Override
     public boolean preorder(DBSPLetStatement statement) {
         boolean isTuple = statement.type.is(DBSPTypeTuple.class);
-        JITInstructionPair ids = this.declare(statement.variable, needsNull(statement.type));
         this.variableAssigned.add(statement.variable);
-        JITType type = this.convertType(statement.type);
-        if (isTuple)
+        if (isTuple) {
+            JITInstructionPair ids = this.declare(statement.variable, needsNull(statement.type));
+            JITType type = this.convertType(statement.type);
             this.add(new JITUninitRowInstruction(ids.value.getId(), type.to(JITRowType.class)));
-        if (statement.initializer != null)
-            statement.initializer.accept(this);
+        }
+        if (statement.initializer != null) {
+            JITInstructionPair init = this.accept(statement.initializer);
+            if (!isTuple)
+                this.getCurrentContext().addVariable(statement.variable, init);
+        }
         Utilities.removeLast(this.variableAssigned);
         return false;
     }
 
     @Override
     public boolean preorder(DBSPFieldExpression expression) {
-        if (expression.expression.is(DBSPParameter.class)) {
-            // check for parameter decompositions.
-            JITParameter param  = this.mapping.getParameterReference(expression.expression.to(DBSPParameter.class), expression.fieldNo);
-            if (param != null) {
-                JITInstructionReference value = new JITInstructionReference(param.getId());
-                JITInstructionReference isNullRef = new JITInstructionReference();
-                if (needsNull(expression)) {
-                    JITInstruction isNull = this.add(new JITIsNullInstruction(this.nextInstructionId(),
-                            param.getInstructionReference(), param.type, 0));
-                    isNullRef = isNull.getInstructionReference();
-                }
-                this.map(expression, new JITInstructionPair(value, isNullRef));
-                return false;
-            }
-        }
-
         JITInstruction isNull = null;
         JITInstructionPair sourceId = this.accept(expression.expression);
         JITRowType sourceType = this.typeCatalog.convertTupleType(expression.expression.getNonVoidType());
@@ -814,16 +868,20 @@ public class ToJitInnerVisitor extends InnerVisitor {
 
     @Override
     public boolean preorder(DBSPCloneExpression expression) {
-        // Treat clone as a noop.
+        // TODO: this is probably wrong for strings and not used for anything else
         JITInstructionPair source = this.accept(expression.expression);
-        this.map(expression, source);
+        JITScalarType type = JITScalarType.scalarType(expression.getNonVoidType());
+        JITInstruction copy = this.add(
+                new JITCopyInstruction(this.nextInstructionId(), source.value, type));
+        JITInstructionPair result = new JITInstructionPair(copy.getInstructionReference(), source.isNull);
+        this.map(expression, result);
         return false;
     }
 
     @Override
     public boolean preorder(DBSPIfExpression expression) {
-        // TODO
-        return false;
+        throw new Unimplemented(expression);
+        // return false;
     }
 
     @Override
@@ -874,12 +932,16 @@ public class ToJitInnerVisitor extends InnerVisitor {
         return result;
     }
 
+    void setCurrentBlock(@Nullable JITBlock block) {
+        this.currentBlock = block;
+    }
+
     @Override
     public boolean preorder(DBSPBlockExpression expression) {
         this.newContext();
         JITBlock saveBlock = this.currentBlock;
         JITBlock newBlock = this.newBlock();
-        this.currentBlock = newBlock;
+        this.setCurrentBlock(newBlock);
         for (DBSPStatement stat: expression.contents)
             stat.accept(this);
 
@@ -902,11 +964,11 @@ public class ToJitInnerVisitor extends InnerVisitor {
         }
 
         JITReturnTerminator ret = new JITReturnTerminator(resultId.value);
-        this.currentBlock.terminate(ret);
+        this.getCurrentBlock().terminate(ret);
         this.popContext();
-        this.currentBlock = saveBlock;
+        this.setCurrentBlock(saveBlock);
         if (this.currentBlock != null) {
-            JITJumpTerminator terminator = new JITJumpTerminator(newBlock.getBlockReference());
+            JITJumpTerminator terminator = new JITJumpTerminator(newBlock.createDestination());
             this.currentBlock.terminate(terminator);
         }
         return false;

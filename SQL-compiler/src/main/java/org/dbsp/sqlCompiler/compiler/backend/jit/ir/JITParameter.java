@@ -57,11 +57,4 @@ public class JITParameter extends JITReference {
     public IIndentStream toString(IIndentStream builder) {
         return builder.append(this.toString());
     }
-
-    /**
-     * Parameters are referred to in the JIT the same as instructions.
-     */
-    public JITInstructionReference getInstructionReference() {
-        return new JITInstructionReference(this.getId());
-    }
 }

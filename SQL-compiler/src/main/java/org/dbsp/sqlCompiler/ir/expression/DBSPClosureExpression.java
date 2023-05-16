@@ -26,16 +26,11 @@ package org.dbsp.sqlCompiler.ir.expression;
 import org.dbsp.sqlCompiler.ir.DBSPFunction;
 import org.dbsp.sqlCompiler.ir.DBSPParameter;
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
-import org.dbsp.sqlCompiler.ir.statement.DBSPLetStatement;
-import org.dbsp.sqlCompiler.ir.statement.DBSPStatement;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeFunction;
-import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
 import org.dbsp.util.Linq;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * An expression of the form |param0, param1, ...| body.
@@ -53,6 +48,7 @@ public class DBSPClosureExpression extends DBSPExpression {
         return this.getFunctionType().resultType;
     }
 
+    @SuppressWarnings("GrazieInspection")
     public DBSPClosureExpression(@Nullable Object node, DBSPExpression body, DBSPParameter... variables) {
         // In Rust in general we can't write the type of a closure.
         super(node, new DBSPTypeFunction(body.getType(), Linq.map(variables, DBSPParameter::getType, DBSPType.class)));
@@ -62,14 +58,6 @@ public class DBSPClosureExpression extends DBSPExpression {
 
     public DBSPClosureExpression(DBSPExpression body, DBSPParameter... variables) {
         this(null, body, variables);
-    }
-
-    /**
-     * Convert a closure into a function.
-     * @param name  Name of the function.
-     */
-    DBSPFunction asFunction(String name) {
-        return new DBSPFunction(name, Linq.list(parameters), this.getResultType(), this.body);
     }
 
     public DBSPExpression call(DBSPExpression... arguments) {

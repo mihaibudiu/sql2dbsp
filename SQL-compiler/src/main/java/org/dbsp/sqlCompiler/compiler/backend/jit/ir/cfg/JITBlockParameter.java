@@ -27,16 +27,17 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionReference;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITReference;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITScalarType;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITType;
+import org.dbsp.util.IIndentStream;
 
 public class JITBlockParameter extends JITNode {
-    final JITInstructionReference argument;
+    final JITReference argument;
     final JITType type;
 
-    public JITBlockParameter(JITInstructionReference argument, JITType type) {
+    public JITBlockParameter(JITReference argument, JITType type) {
         this.argument = argument;
         this.type = type;
     }
@@ -54,5 +55,10 @@ public class JITBlockParameter extends JITNode {
             type.put("Row", row.getId());
         }
         return result;
+    }
+
+    @Override
+    public IIndentStream toString(IIndentStream builder) {
+        return builder.append(this.argument);
     }
 }
