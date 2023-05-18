@@ -28,10 +28,10 @@ import org.dbsp.sqlCompiler.ir.expression.DBSPBinaryExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPCastExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPIfExpression;
+import org.dbsp.sqlCompiler.ir.expression.DBSPOpcode;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPBoolLiteral;
 import org.dbsp.sqlCompiler.ir.expression.DBSPIsNullExpression;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
-import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeBool;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeNull;
 
 import java.util.Objects;
@@ -122,8 +122,7 @@ public class Simplify extends InnerExpressionRewriteVisitor {
                     result = right;
                 }
             }
-        } else if (expression.operation.equals("||") &&
-            expression.getNonVoidType().is(DBSPTypeBool.class)) {
+        } else if (expression.operation.equals(DBSPOpcode.OR)) {
             if (left.is(DBSPBoolLiteral.class)) {
                 DBSPBoolLiteral bLeft = left.to(DBSPBoolLiteral.class);
                 if (bLeft.isNull) {

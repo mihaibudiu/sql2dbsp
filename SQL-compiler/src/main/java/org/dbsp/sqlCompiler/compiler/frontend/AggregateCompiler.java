@@ -133,12 +133,13 @@ public class AggregateCompiler {
         DBSPVariablePath accum = this.resultType.var(this.genAccumulatorName());
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType, accum, argument);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.resultType, accum, argument);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType,
+                    function, DBSPOpcode.AGG_ADD, this.resultType,
                     accum, new DBSPBinaryExpression(function, DBSPTypeInteger.SIGNED_64,
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             argument,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -157,15 +158,15 @@ public class AggregateCompiler {
 
     void processMinMax(SqlMinMaxAggFunction function) {
         DBSPExpression zero = DBSPLiteral.none(this.nullableResultType);
-        String call;
+        DBSPOpcode call;
         String semigroupName;
         switch (function.getKind()) {
             case MIN:
-                call = "min";
+                call = DBSPOpcode.AGG_MIN;
                 semigroupName = "MinSemigroup";
                 break;
             case MAX:
-                call = "max";
+                call = DBSPOpcode.AGG_MAX;
                 semigroupName = "MaxSemigroup";
                 break;
             default:
@@ -188,13 +189,14 @@ public class AggregateCompiler {
 
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.nullableResultType, accum, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.nullableResultType, accum, aggregatedValue);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.nullableResultType,
+                    function, DBSPOpcode.AGG_ADD, this.nullableResultType,
                     accum, new DBSPBinaryExpression(function, 
                             aggregatedValue.getNonVoidType(),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -211,14 +213,15 @@ public class AggregateCompiler {
 
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType, accum, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.resultType, accum, aggregatedValue);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType,
+                    function, DBSPOpcode.AGG_ADD, this.resultType,
                     accum, new DBSPBinaryExpression(
                             function,
                             aggregatedValue.getNonVoidType(),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -249,24 +252,26 @@ public class AggregateCompiler {
                     "indicator", aggregatedValue);
         if (this.isDistinct) {
             count = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64, countAccumulator, plusOne);
+                    function, DBSPOpcode.AGG_ADD,
+                    i64, countAccumulator, plusOne);
             sum = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64, sumAccumulator, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    i64, sumAccumulator, aggregatedValue);
         } else {
             count = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64,
+                    function, DBSPOpcode.AGG_ADD, i64,
                     countAccumulator, new DBSPBinaryExpression(
                             function,
                             DBSPTypeInteger.SIGNED_64.setMayBeNull(plusOne.getNonVoidType().mayBeNull),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             plusOne,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
             sum = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64,
+                    function, DBSPOpcode.AGG_ADD, i64,
                     sumAccumulator, new DBSPBinaryExpression(
                             function,
                             i64,
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }

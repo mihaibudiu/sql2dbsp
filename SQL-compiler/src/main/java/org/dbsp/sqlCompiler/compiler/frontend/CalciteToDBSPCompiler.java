@@ -550,7 +550,8 @@ public class CalciteToDBSPCompiler extends RelVisitor
                 if (condition == null)
                     condition = expr;
                 else
-                    condition = new DBSPBinaryExpression(join, DBSPTypeBool.INSTANCE, "||", condition, expr);
+                    condition = new DBSPBinaryExpression(
+                            join, DBSPTypeBool.INSTANCE, DBSPOpcode.OR, condition, expr);
             }
         }
         DBSPExpression check = new DBSPIfExpression(join, Objects.requireNonNull(condition), none, some);

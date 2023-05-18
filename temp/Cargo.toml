@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#dbsp = { git = "https://github.com/feldera/dbsp.git", features = ["with-serde"], default-features = false }
-#dbsp_adapters = { git = "https://github.com/feldera/dbdsp.git", default-features = false }
-dbsp = { path = "../../dbsp/crates/dbsp", features = ["with-serde"] }
-dbsp_adapters = { path = "../../dbsp/crates/adapters" }
+dbsp = { git = "https://github.com/feldera/dbsp.git", features = ["with-serde"], default-features = false }
+dbsp_adapters = { git = "https://github.com/feldera/dbsp.git", default-features = false }
+#dbsp = { path = "../../dbsp/crates/dbsp", features = ["with-serde"] }
+#dbsp_adapters = { path = "../../dbsp/crates/adapters" }
 tuple = { path = "../lib/tuple" }
 sqllib = { path = "../lib/sqllib" }
 sqlvalue = { path = "../lib/sqlvalue" }

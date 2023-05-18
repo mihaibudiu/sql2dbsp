@@ -204,7 +204,8 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
     }
 
     public static DBSPExpression aggregateOperation(
-            SqlOperator node, String op, DBSPType type, DBSPExpression left, DBSPExpression right) {
+            SqlOperator node, DBSPOpcode op,
+            DBSPType type, DBSPExpression left, DBSPExpression right) {
         DBSPType leftType = left.getNonVoidType();
         DBSPType rightType = right.getNonVoidType();
         DBSPType commonBase = reduceType(leftType, rightType);
@@ -212,9 +213,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
             return DBSPLiteral.none(type);
         }
         DBSPType resultType = commonBase.setMayBeNull(leftType.mayBeNull || rightType.mayBeNull);
-        if (op.equals("+"))
-            op = "plus";
-        DBSPExpression binOp = new DBSPBinaryExpression(node, resultType, "agg_" + op, left, right);
+        DBSPExpression binOp = new DBSPBinaryExpression(node, resultType, op, left, right);
         return binOp.cast(type);
     }
 
@@ -260,7 +259,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
         // TODO: we don't need the whole function here, just the result type.
         RustSqlRuntimeLibrary.FunctionDescription function = RustSqlRuntimeLibrary.INSTANCE.getImplementation(
                 op, type, left.getNonVoidType(), right.getNonVoidType());
-        DBSPExpression call = new DBSPBinaryExpression(node, function.returnType, op, left, right);
+        DBSPExpression call = new DBSPBinaryExpression(node, function.returnType, function.opcode, left, right);
         return call.cast(type);
     }
 

@@ -39,6 +39,7 @@ public class JITSumOperator extends JITOperator {
     public BaseJsonNode asJson() {
         ObjectNode result = jsonFactory().createObjectNode();
         ObjectNode data = result.putObject("Sum");
+        this.type.addDescriptionTo(data, "layout");
         ArrayNode inputs = data.putArray("inputs");
         for (JITOperatorReference input: this.inputs)
             inputs.add(input.getId());

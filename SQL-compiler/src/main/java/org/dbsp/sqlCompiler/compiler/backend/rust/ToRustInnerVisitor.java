@@ -400,7 +400,7 @@ public class ToRustInnerVisitor extends InnerVisitor {
                 expression.right.accept(this);
                 this.builder.append(") {").increase()
                         .append("(Some(x), Some(y)) => Some(x ")
-                        .append(expression.operation)
+                        .append(expression.operation.toString())
                         .append(" y),\n")
                         .append("_ => None,\n")
                         .decrease()
@@ -410,13 +410,13 @@ public class ToRustInnerVisitor extends InnerVisitor {
                 this.builder.append("(");
                 expression.left.accept(this);
                 this.builder.append(" ")
-                        .append(expression.operation)
+                        .append(expression.operation.toString())
                         .append(" ");
                 expression.right.accept(this);
                 this.builder.append(")");
             }
         } else {
-            if (expression.operation.equals("mul_weight")) {
+            if (expression.operation.equals(DBSPOpcode.MUL_WEIGHT)) {
                 expression.left.accept(this);
                 this.builder.append(".mul_by_ref(");
                 expression.right.accept(this);
@@ -424,7 +424,7 @@ public class ToRustInnerVisitor extends InnerVisitor {
                 return false;
             }
             RustSqlRuntimeLibrary.FunctionDescription function = RustSqlRuntimeLibrary.INSTANCE.getImplementation(
-                    expression.operation,
+                    expression.operation.toString(),
                     expression.getNonVoidType(),
                     expression.left.getNonVoidType(),
                     expression.right.getNonVoidType());

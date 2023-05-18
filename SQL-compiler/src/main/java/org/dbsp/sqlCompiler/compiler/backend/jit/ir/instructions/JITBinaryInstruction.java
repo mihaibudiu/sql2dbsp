@@ -95,7 +95,7 @@ public class JITBinaryInstruction extends JITInstruction {
 
     @Override
     public IIndentStream toString(IIndentStream builder) {
-        return super.toString(builder)
+        return builder.append(this.id)
                 .append(" ")
                 .append(this.left)
                 .append(" ")

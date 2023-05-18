@@ -92,6 +92,16 @@ public abstract class JITOperator extends JITNode implements IJITId {
             node.put("comment", comment);
     }
 
+    /**
+     * Implementation of asJson which also adds the object layout information.
+     */
+    public BaseJsonNode asJsonWithLayout() {
+        BaseJsonNode result = this.asJson();
+        ObjectNode inner = this.getInnerObject(result);
+        this.type.addDescriptionTo(inner, "layout");
+        return result;
+    }
+
     @Override
     public BaseJsonNode asJson() {
         ObjectNode result = jsonFactory().createObjectNode();

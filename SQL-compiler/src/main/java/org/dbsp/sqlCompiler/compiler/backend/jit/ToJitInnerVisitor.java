@@ -456,39 +456,38 @@ public class ToJitInnerVisitor extends InnerVisitor {
         return false;
     }
 
-    static final Map<String, JITBinaryInstruction.Operation> opNames = new HashMap<>();
+    static final Map<DBSPOpcode, JITBinaryInstruction.Operation> opNames = new HashMap<>();
 
     static {
         // https://github.com/feldera/dbsp/blob/dataflow-jit/crates/dataflow-jit/src/ir/expr.rs, the BinaryOpKind enum
-        opNames.put("+", JITBinaryInstruction.Operation.ADD);
-        opNames.put("-", JITBinaryInstruction.Operation.SUB);
-        opNames.put("*", JITBinaryInstruction.Operation.MUL);
-        opNames.put("/", JITBinaryInstruction.Operation.DIV);
-        opNames.put("==",JITBinaryInstruction.Operation.EQ);
-        opNames.put("!=",JITBinaryInstruction.Operation.NEQ);
-        opNames.put("<", JITBinaryInstruction.Operation.LT);
-        opNames.put(">", JITBinaryInstruction.Operation.GT);
-        opNames.put("<=",JITBinaryInstruction.Operation.LTE);
-        opNames.put(">=",JITBinaryInstruction.Operation.GTE);
-        opNames.put("&", JITBinaryInstruction.Operation.AND);
-        opNames.put("&&",JITBinaryInstruction.Operation.AND);
-        opNames.put("|", JITBinaryInstruction.Operation.OR);
-        opNames.put("||",JITBinaryInstruction.Operation.OR);
-        opNames.put("^", JITBinaryInstruction.Operation.XOR);
-        opNames.put("agg_max", JITBinaryInstruction.Operation.MAX);
-        opNames.put("agg_min", JITBinaryInstruction.Operation.MIN);
+        opNames.put(DBSPOpcode.ADD, JITBinaryInstruction.Operation.ADD);
+        opNames.put(DBSPOpcode.SUB, JITBinaryInstruction.Operation.SUB);
+        opNames.put(DBSPOpcode.MUL, JITBinaryInstruction.Operation.MUL);
+        opNames.put(DBSPOpcode.DIV, JITBinaryInstruction.Operation.DIV);
+        opNames.put(DBSPOpcode.EQ,JITBinaryInstruction.Operation.EQ);
+        opNames.put(DBSPOpcode.NEQ, JITBinaryInstruction.Operation.NEQ);
+        opNames.put(DBSPOpcode.LT, JITBinaryInstruction.Operation.LT);
+        opNames.put(DBSPOpcode.GT, JITBinaryInstruction.Operation.GT);
+        opNames.put(DBSPOpcode.LTE, JITBinaryInstruction.Operation.LTE);
+        opNames.put(DBSPOpcode.GTE, JITBinaryInstruction.Operation.GTE);
+        opNames.put(DBSPOpcode.BW_AND, JITBinaryInstruction.Operation.AND);
+        opNames.put(DBSPOpcode.AND, JITBinaryInstruction.Operation.AND);
+        opNames.put(DBSPOpcode.BW_OR, JITBinaryInstruction.Operation.OR);
+        opNames.put(DBSPOpcode.OR, JITBinaryInstruction.Operation.OR);
+        opNames.put(DBSPOpcode.XOR, JITBinaryInstruction.Operation.XOR);
+        opNames.put(DBSPOpcode.MAX, JITBinaryInstruction.Operation.MAX);
+        opNames.put(DBSPOpcode.MIN, JITBinaryInstruction.Operation.MIN);
     }
 
     @Override
     public boolean preorder(DBSPBinaryExpression expression) {
         // a || b for strings is concatenation.
-        if (expression.left.getNonVoidType().is(DBSPTypeString.class) &&
-                expression.operation.equals("||")) {
+        if (expression.operation.equals(DBSPOpcode.CONCAT)) {
             this.createFunctionCall("dbsp.str.concat_clone", expression,
                     expression.left, expression.right);
             return false;
         }
-        if (expression.operation.equals("/") &&
+        if (expression.operation.equals(DBSPOpcode.DIV) &&
                 expression.left.getNonVoidType().is(DBSPTypeInteger.class)) {
             // left / right
             JITInstructionPair left = this.accept(expression.left);
@@ -542,8 +541,8 @@ public class ToJitInnerVisitor extends InnerVisitor {
 
             // join point
             this.setCurrentBlock(next);
-            JITInstructionReference value = next.addParameter(new JITReference(this.nextInstructionId()), type);
             JITInstructionReference isNull = next.addParameter(new JITReference(this.nextInstructionId()), JITBoolType.INSTANCE);
+            JITInstructionReference value = next.addParameter(new JITReference(this.nextInstructionId()), type);
             JITInstructionPair result = new JITInstructionPair(value, isNull);
             this.map(expression, result);
             return false;
