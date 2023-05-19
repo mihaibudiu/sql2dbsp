@@ -365,10 +365,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                     if (call.op.kind == SqlKind.IS_NULL)
                         return ops.get(0).is_null();
                     else
-                        return new DBSPUnaryExpression(call,
-                                type,
-                                DBSPOpcode.NOT,
-                                ops.get(0).is_null());
+                        return new DBSPUnaryExpression(call, type, DBSPOpcode.NOT, ops.get(0).is_null());
                 } else {
                     // Constant-fold
                     if (call.op.kind == SqlKind.IS_NULL)

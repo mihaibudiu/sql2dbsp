@@ -80,7 +80,7 @@ public abstract class DBSPExpression
     public DBSPExpression some() {
         DBSPType type = this.getNonVoidType();
         type = type.setMayBeNull(true);
-        return new DBSPSomeExpression(null,this);
+        return new DBSPSomeExpression(null, this);
     }
 
     public DBSPClosureExpression closure(DBSPParameter... parameters) {

@@ -148,7 +148,7 @@ public class RustSqlRuntimeLibrary {
         this.booleanFunctions.put("agg_max", DBSPOpcode.AGG_MAX);
     }
 
-     public static class FunctionDescription {
+    public static class FunctionDescription {
         public final String function;
         public final DBSPType returnType;
 
