@@ -1,6 +1,6 @@
-![Tests](https://github.com/feldera/sql2dbsp/actions/workflows/ci.yml/badge.svg)
-
 # SQL to DBSP compiler
+
+![Tests](https://github.com/feldera/sql2dbsp/actions/workflows/ci.yml/badge.svg)
 
 This repository holds the source code for a compiler translating SQL
 view definitions into DBSP circuits.  DBSP is a framework for

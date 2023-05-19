@@ -1,6 +1,16 @@
 # Contributing to SQL-to-DBSP compiler
 
-The SQL to DBSP Compiler project team welcomes contributions from the community. 
+The SQL to DBSP Compiler project team welcomes contributions from the
+community.  Before you start working with DBSP, please read our
+[Developer Certificate of Origin
+(DCO)](https://developercertificate.org/).  To acknowledge the DCO,
+sign your commits by adding `Signed-off-by: Your Name
+<your@email.com>` to the last line of each Git commit message.  Your
+signature certifies that you wrote the patch or have the right to pass
+it on as an open-source patch.  The e-mail address used to sign must
+match the e-mail address of the Git author. If you set your
+`user.name` and `user.email` git config values, you can sign your
+commit automatically with `git commit -s`.
 
 ## Contribution Flow
 
