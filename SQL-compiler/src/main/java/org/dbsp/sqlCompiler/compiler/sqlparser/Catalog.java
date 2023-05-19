@@ -26,9 +26,6 @@ package org.dbsp.sqlCompiler.compiler.sqlparser;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 
 import java.util.HashMap;
 import java.util.Map;

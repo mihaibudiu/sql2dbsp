@@ -33,7 +33,6 @@ import org.dbsp.sqlCompiler.compiler.backend.jit.ir.cfg.JITReturnTerminator;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITBinaryInstruction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITCastInstruction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITConstantInstruction;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITCopyInstruction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITFunctionCall;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstruction;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionPair;
@@ -295,35 +294,51 @@ public class ToJitInnerVisitor extends InnerVisitor {
 
         // If any operand is null we create a branch and only call the function
         // conditionally.
-        // if (!anyNull) funcCall(args);
-        JITBlock onFalseBlock;
-        JITBlock nextBlock = null;
+        // if (anyNull) { result = default; } else { result = funcCall(args); }
+        JITBlock onNullBlock = null;
+        JITBlock onNonNullBlock = null;
+        JITBlock nextBlock = this.getCurrentBlock();
         if (isNull.isValid()) {
-            onFalseBlock = this.newBlock();
+            onNullBlock = this.newBlock();
+            onNonNullBlock = this.newBlock();
             nextBlock = this.newBlock();
             JITBranchTerminator branch = new JITBranchTerminator(
-                    isNull, nextBlock.createDestination(),
-                    onFalseBlock.createDestination());
+                    isNull, onNullBlock.createDestination(),
+                    onNonNullBlock.createDestination());
             this.getCurrentBlock().terminate(branch);
-            this.setCurrentBlock(onFalseBlock);
-            // The function call will be inserted in the onFalseBlock
+            this.setCurrentBlock(onNonNullBlock);
         }
 
         JITScalarType resultType = convertScalarType(expression);
         long id = this.nextInstructionId();
-        JITFunctionCall call = new JITFunctionCall(id, name, args, argumentTypes, resultType);
-        this.add(call);
+        JITInstruction call = this.add(new JITFunctionCall(id, name, args, argumentTypes, resultType));
         JITInstructionPair result;
 
         if (isNull.isValid()) {
-            JITJumpTerminator terminator = new JITJumpTerminator(
-                    Objects.requireNonNull(nextBlock).createDestination());
-            this.getCurrentBlock().terminate(terminator);
+            Objects.requireNonNull(nextBlock);
+            Objects.requireNonNull(onNonNullBlock);
+            Objects.requireNonNull(onNullBlock);
+            JITInstructionReference param = new JITInstructionReference(this.nextInstructionId());
+            nextBlock.addParameter(param, resultType);
+
+            JITBlockDestination next = nextBlock.createDestination();
+            next.addArgument(call.getInstructionReference());
+            JITJumpTerminator terminator = new JITJumpTerminator(next);
+            onNonNullBlock.terminate(terminator);
+
+            next = nextBlock.createDestination();
+            this.setCurrentBlock(onNullBlock);
+            DBSPLiteral defaultValue = expression.getNonVoidType()
+                    .setMayBeNull(false)
+                    .to(DBSPTypeBaseType.class)
+                    .defaultValue();
+            JITInstructionPair defJitValue = this.accept(defaultValue);
+            next.addArgument(defJitValue.value);
+            terminator = new JITJumpTerminator(next);
+            onNullBlock.terminate(terminator);
 
             this.setCurrentBlock(nextBlock);
-            JITCopyInstruction copy = new JITCopyInstruction(this.nextInstructionId(), isNull, JITBoolType.INSTANCE);
-            this.getCurrentBlock().add(copy);
-            result = new JITInstructionPair(call, copy);
+            result = new JITInstructionPair(param, isNull);
         } else {
             result = new JITInstructionPair(call);
         }
@@ -335,6 +350,15 @@ public class ToJitInnerVisitor extends InnerVisitor {
     @Override
     public boolean preorder(DBSPExpression expression) {
         throw new Unimplemented(expression);
+    }
+
+    @Override
+    public boolean preorder(DBSPSomeExpression expression) {
+        JITInstructionPair source = this.accept(expression.expression);
+        JITInstructionPair False = this.constantBool(false);
+        JITInstructionPair result = new JITInstructionPair(source.value, False.value);
+        this.map(expression, result);
+        return false;
     }
 
     @Override
@@ -442,15 +466,16 @@ public class ToJitInnerVisitor extends InnerVisitor {
             if (needsNull(expression.source)) {
                 isNull = sourceId.isNull;
             } else {
-                // TODO: if source is nullable and is null must panic at runtime
-                // this.createFunctionCall("dbsp.error.abort", expression);
-            }
-        } else {
-            if (needsNull(expression.source)) {
                 JITInstructionPair f = this.constantBool(false);
                 isNull = f.value;
             }
-            // else nothing to do
+        } else {
+            if (needsNull(expression.source)) {
+                isNull = new JITInstructionReference();
+                // TODO: if source is nullable and is null must panic at runtime
+                // this.createFunctionCall("dbsp.error.abort", expression);
+            }
+            // else nothing to do for null field
         }
         this.map(expression, new JITInstructionPair(cast.getInstructionReference(), isNull));
         return false;
@@ -459,8 +484,10 @@ public class ToJitInnerVisitor extends InnerVisitor {
     static final Map<DBSPOpcode, JITBinaryInstruction.Operation> opNames = new HashMap<>();
 
     static {
-        // https://github.com/feldera/dbsp/blob/dataflow-jit/crates/dataflow-jit/src/ir/expr.rs, the BinaryOpKind enum
         opNames.put(DBSPOpcode.ADD, JITBinaryInstruction.Operation.ADD);
+        opNames.put(DBSPOpcode.AGG_ADD, JITBinaryInstruction.Operation.ADD);
+        opNames.put(DBSPOpcode.AGG_MAX, JITBinaryInstruction.Operation.MAX);
+        opNames.put(DBSPOpcode.AGG_MIN, JITBinaryInstruction.Operation.MIN);
         opNames.put(DBSPOpcode.SUB, JITBinaryInstruction.Operation.SUB);
         opNames.put(DBSPOpcode.MUL, JITBinaryInstruction.Operation.MUL);
         opNames.put(DBSPOpcode.DIV, JITBinaryInstruction.Operation.DIV);
@@ -564,10 +591,10 @@ public class ToJitInnerVisitor extends InnerVisitor {
             rightNullId = rightId.isNull;
         else
             rightNullId = cf.value;
-        boolean special = expression.operation.equals("&&") ||
-                (expression.operation.equals("||") && expression.left.getNonVoidType().is(DBSPTypeBool.class));
+        boolean special = expression.operation.equals(DBSPOpcode.AND) ||
+                (expression.operation.equals(DBSPOpcode.OR));
         if (needsNull(expression.getNonVoidType()) && special) {
-            if (expression.operation.equals("&&")) {
+            if (expression.operation.equals(DBSPOpcode.AND)) {
                 // Nullable bit computation
                 // (a && b).is_null = a.is_null ? (b.is_null ? true     : !b.value)
                 //                              : (b.is_null ? !a.value : false)
@@ -643,9 +670,10 @@ public class ToJitInnerVisitor extends InnerVisitor {
                 this.map(expression, new JITInstructionPair(value, isNull));
             }
             return false;
-        } else if (expression.operation.equals("agg_plus")) {
+        } else if (expression.operation.isAggregate) {
+            JITBinaryInstruction.Operation op = Utilities.getExists(opNames, expression.operation);
             JITInstruction value = this.add(new JITBinaryInstruction(
-                    this.nextInstructionId(), JITBinaryInstruction.Operation.ADD,
+                    this.nextInstructionId(), op,
                     leftId.value, rightId.value,
                     convertScalarType(expression.left)));
             JITInstruction isNull = null;
@@ -657,26 +685,26 @@ public class ToJitInnerVisitor extends InnerVisitor {
             }
             this.map(expression, new JITInstructionPair(value, isNull));
             return false;
-        } else if (expression.operation.equals("mul_weight")) {
+        } else if (expression.operation.equals(DBSPOpcode.MUL_WEIGHT)) {
             // (a * w).value = (a.value * (type_of_a)w)
             // (a * w).is_null = a.is_null
-            JITInstructionReference left;
-            DBSPType rightType = ToJitVisitor.resolveWeightType(expression.right.getNonVoidType());
-            if (expression.left.getNonVoidType().sameType(rightType)) {
+            JITInstructionReference right;
+            JITScalarType rightType = convertScalarType(expression.right);
+            JITScalarType leftType = convertScalarType(expression.left);
+            if (!expression.left.getNonVoidType().sameType(expression.right.getType())) {
+                // Have to convert the weight to the correct type
                 JITInstruction cast = this.add(new JITCastInstruction(this.nextInstructionId(),
-                    rightId.value, convertScalarType(expression.right), convertScalarType(expression.left)));
-                left = cast.getInstructionReference();
+                    rightId.value, rightType, leftType));
+                right = cast.getInstructionReference();
             } else {
-                left = leftId.value;
+                right = rightId.value;
             }
             JITInstruction value = this.add(new JITBinaryInstruction(this.nextInstructionId(),
-                JITBinaryInstruction.Operation.MUL, left, rightId.value, convertScalarType(expression.left)));
-            JITInstruction isNull = null;
-            if (needsNull(expression)) {
-                isNull = this.add(new JITCopyInstruction(this.nextInstructionId(),
-                        leftId.isNull, JITBoolType.INSTANCE));
-            }
-            this.map(expression, new JITInstructionPair(value, isNull));
+                JITBinaryInstruction.Operation.MUL, leftId.value, right, leftType));
+            JITInstructionReference isNull = new JITInstructionReference();
+            if (needsNull(expression))
+                isNull = leftId.isNull;
+            this.map(expression, new JITInstructionPair(value.getInstructionReference(), isNull));
             return false;
         }
 
@@ -696,25 +724,25 @@ public class ToJitInnerVisitor extends InnerVisitor {
     @Override
     public boolean preorder(DBSPUnaryExpression expression) {
         JITInstructionPair source = this.accept(expression.source);
-        boolean isWrapBool = expression.operation.equals("wrap_bool");
+        boolean isWrapBool = expression.operation.equals(DBSPOpcode.WRAP_BOOL);
         JITInstructionPair cf = null;
         if (isWrapBool)
             cf = this.constantBool(false);
         JITUnaryInstruction.Operation kind;
         switch (expression.operation) {
-            case "-":
+            case NEG:
                 kind = JITUnaryInstruction.Operation.NEG;
                 break;
-            case "!":
+            case NOT:
                 kind = JITUnaryInstruction.Operation.NOT;
                 break;
-            case "wrap_bool": {
+            case WRAP_BOOL: {
                 JITInstruction value = this.add(new JITMuxInstruction(this.nextInstructionId(),
                         source.isNull, cf.value, source.value));
                 this.map(expression, new JITInstructionPair(value));
                 return false;
             }
-            case "is_false": {
+            case IS_FALSE: {
                 if (source.hasNull()) {
                     // result = left.is_null ? false : !left.value
                     // ! left.value
@@ -731,7 +759,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
                 }
                 break;
             }
-            case "is_true": {
+            case IS_TRUE: {
                 if (source.hasNull()) {
                     // result = left.is_null ? false : left.value
                     JITInstructionPair False = this.constantBool(false);
@@ -744,7 +772,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
                 }
                 return false;
             }
-            case "is_not_true": {
+            case IS_NOT_TRUE: {
                 if (source.hasNull()) {
                     // result = left.is_null ? true : !left.value
                     // ! left.value
@@ -761,7 +789,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
                 }
                 break;
             }
-            case "is_not_false": {
+            case IS_NOT_FALSE: {
                 if (source.hasNull()) {
                     // result = left.is_null ? true : left.value
                     JITInstructionPair True = this.constantBool(true);
@@ -774,7 +802,7 @@ public class ToJitInnerVisitor extends InnerVisitor {
                 }
                 return false;
             }
-            case "indicator": {
+            case INDICATOR: {
                 if (!source.hasNull())
                     throw new RuntimeException("indicator called on non-nullable expression" + expression);
                 JITInstruction value = this.add(new JITCastInstruction(this.nextInstructionId(),
@@ -867,20 +895,54 @@ public class ToJitInnerVisitor extends InnerVisitor {
 
     @Override
     public boolean preorder(DBSPCloneExpression expression) {
-        // TODO: this is probably wrong for strings and not used for anything else
+        // TODO: this is probably wrong
         JITInstructionPair source = this.accept(expression.expression);
-        JITScalarType type = JITScalarType.scalarType(expression.getNonVoidType());
-        JITInstruction copy = this.add(
-                new JITCopyInstruction(this.nextInstructionId(), source.value, type));
-        JITInstructionPair result = new JITInstructionPair(copy.getInstructionReference(), source.isNull);
-        this.map(expression, result);
+        this.map(expression, source);
         return false;
     }
 
     @Override
     public boolean preorder(DBSPIfExpression expression) {
-        throw new Unimplemented(expression);
-        // return false;
+        JITInstructionPair cond = this.accept(expression.condition);
+        JITBlock ifTrue = this.newBlock();
+        JITBlock ifFalse = this.newBlock();
+        boolean nullable = needsNull(expression);
+
+        JITBlock next = this.newBlock();
+        JITBranchTerminator branch = new JITBranchTerminator(
+                cond.value, ifTrue.createDestination(), ifFalse.createDestination());
+        this.getCurrentBlock().terminate(branch);
+
+        this.setCurrentBlock(ifTrue);
+        JITInstructionPair positive = this.accept(expression.positive);
+        JITBlockDestination nextDest = next.createDestination();
+        nextDest.addArgument(positive.value);
+        if (nullable)
+            nextDest.addArgument(positive.isNull);
+        JITJumpTerminator jump = new JITJumpTerminator(nextDest);
+        this.getCurrentBlock().terminate(jump);
+
+        this.setCurrentBlock(ifFalse);
+        JITInstructionPair negative = this.accept(expression.negative);
+        nextDest = next.createDestination();
+        nextDest.addArgument(negative.value);
+        if (nullable)
+            nextDest.addArgument(negative.isNull);
+        jump = new JITJumpTerminator(nextDest);
+        this.getCurrentBlock().terminate(jump);
+
+        this.setCurrentBlock(next);
+        JITType type = this.convertType(expression.getNonVoidType());
+        JITInstructionReference paramValue = new JITInstructionReference(this.nextInstructionId());
+        JITInstructionReference isNull = new JITInstructionReference();
+        next.addParameter(new JITInstructionReference(this.nextInstructionId()), type);
+        if (nullable) {
+            isNull = new JITInstructionReference(this.nextInstructionId());
+            next.addParameter(isNull, JITBoolType.INSTANCE);
+        }
+        this.setCurrentBlock(next);
+        this.map(expression, new JITInstructionPair(paramValue, isNull));
+        return false;
     }
 
     @Override

@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 /**
  * SQL contains a large number of keywords that appear in various places.
  */
-@SuppressWarnings("SpellCheckingInspection")
 public class DBSPKeywordLiteral extends DBSPLiteral {
     public final String keyword;
 

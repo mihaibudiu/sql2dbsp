@@ -31,6 +31,9 @@ import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeDate;
 import javax.annotation.Nullable;
 
 public class DBSPDateLiteral extends DBSPLiteral {
+    /**
+     * A NULL date.
+     */
     public DBSPDateLiteral() {
         super(null, DBSPTypeDate.NULLABLE_INSTANCE, null);
     }

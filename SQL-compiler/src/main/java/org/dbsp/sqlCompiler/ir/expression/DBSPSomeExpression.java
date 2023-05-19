@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 VMware, Inc.
+ * Copyright 2023 VMware, Inc.
  * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,31 +24,25 @@
 package org.dbsp.sqlCompiler.ir.expression;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
-import org.dbsp.sqlCompiler.ir.type.DBSPType;
-import org.dbsp.util.TranslationException;
 
 import javax.annotation.Nullable;
 
-public class DBSPUnaryExpression extends DBSPExpression {
-    public final DBSPExpression source;
-    public final DBSPOpcode operation;
+/**
+ * Represents an expression of the form Some(e).
+ */
+public class DBSPSomeExpression extends DBSPExpression {
+    public final DBSPExpression expression;
 
-    @SuppressWarnings("ConstantConditions")
-    public DBSPUnaryExpression(@Nullable Object node, DBSPType type, DBSPOpcode operation, DBSPExpression operand) {
-        super(node, type);
-        this.operation = operation;
-        this.source = operand;
-        if (this.source == null)
-            throw new TranslationException("Null operand", node);
+    public DBSPSomeExpression(@Nullable Object object, DBSPExpression expression) {
+        super(object, expression.getNonVoidType().setMayBeNull(true));
+        this.expression = expression;
     }
 
     @Override
     public void accept(InnerVisitor visitor) {
-        if (!visitor.preorder(this)) return;
-        if (this.type != null)
-            this.type.accept(visitor);
-        this.source.accept(visitor);
+        if (!visitor.preorder(this))
+            return;
+        this.expression.accept(visitor);
         visitor.postorder(this);
     }
-
 }

@@ -24,7 +24,9 @@
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
+import org.dbsp.util.UnsupportedException;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -44,6 +46,11 @@ public class DBSPTypeStr extends DBSPTypeBaseType {
     @Override
     public String shortName() {
         return "str";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        throw new UnsupportedException("default value for 'str' type");
     }
 
     @Override

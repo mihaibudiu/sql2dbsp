@@ -49,5 +49,4 @@ public class DBSPStructExpression extends DBSPExpression {
             arg.accept(visitor);
         visitor.postorder(this);
     }
-
 }

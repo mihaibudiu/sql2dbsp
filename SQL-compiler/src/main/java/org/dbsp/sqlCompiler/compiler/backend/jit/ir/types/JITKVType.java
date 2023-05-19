@@ -24,7 +24,6 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**

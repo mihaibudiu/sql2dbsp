@@ -24,6 +24,8 @@
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPGeoPointLiteral;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 
 import javax.annotation.Nullable;
@@ -66,5 +68,12 @@ public class DBSPTypeGeoPoint extends DBSPTypeGeo {
     @Override
     public String shortName() {
         return "geopoint";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return new DBSPGeoPointLiteral(null,
+                DBSPTypeDouble.INSTANCE.defaultValue(),
+                DBSPTypeDouble.INSTANCE.defaultValue());
     }
 }

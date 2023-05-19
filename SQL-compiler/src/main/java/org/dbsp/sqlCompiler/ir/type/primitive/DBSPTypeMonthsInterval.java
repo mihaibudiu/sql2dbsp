@@ -75,6 +75,11 @@ public class DBSPTypeMonthsInterval extends DBSPTypeBaseType implements IsNumeri
     }
 
     @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
+    }
+
+    @Override
     public DBSPLiteral getZero() {
         return new DBSPIntervalMonthsLiteral(0, this.mayBeNull);
     }

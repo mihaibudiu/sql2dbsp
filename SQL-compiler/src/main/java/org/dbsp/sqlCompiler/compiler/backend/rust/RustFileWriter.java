@@ -288,7 +288,7 @@ public class RustFileWriter {
         }
     }
 
-    public void writeAndClose() throws FileNotFoundException, UnsupportedEncodingException {
+    public void writeAndClose() {
         Logger.INSTANCE.setDebugLevel(FindResources.class, 3);
         this.write();
         this.outputStream.close();

@@ -93,17 +93,10 @@ public abstract class JITOperator extends JITNode implements IJITId {
     }
 
     /**
-     * Implementation of asJson which also adds the object layout information.
+     * Standard serialization of this operator as JSON.
+     * Cannot be overloaded, unlike asJson below.
      */
-    public BaseJsonNode asJsonWithLayout() {
-        BaseJsonNode result = this.asJson();
-        ObjectNode inner = this.getInnerObject(result);
-        this.type.addDescriptionTo(inner, "layout");
-        return result;
-    }
-
-    @Override
-    public BaseJsonNode asJson() {
+    private BaseJsonNode stdAsJson() {
         ObjectNode result = jsonFactory().createObjectNode();
         ObjectNode data = result.putObject(this.name);
         this.addInputs(data);
@@ -112,6 +105,21 @@ public abstract class JITOperator extends JITNode implements IJITId {
         }
         this.addComment(data, this.comment);
         return result;
+    }
+
+    /**
+     * Implementation of asJson which also adds the object layout information.
+     */
+    public BaseJsonNode asJsonWithLayout() {
+        BaseJsonNode result = this.stdAsJson();
+        ObjectNode inner = this.getInnerObject(result);
+        this.type.addDescriptionTo(inner, "layout");
+        return result;
+    }
+
+    @Override
+    public BaseJsonNode asJson() {
+        return this.stdAsJson();
     }
 
     /**

@@ -38,7 +38,7 @@ import java.util.function.Function;
 /**
  * Depth-first traversal of an DBSPNode hierarchy.
  */
-@SuppressWarnings("SameReturnValue")
+@SuppressWarnings({"SameReturnValue", "BooleanMethodIsAlwaysInverted"})
 public abstract class CircuitVisitor extends IdGen implements Function<DBSPCircuit, DBSPCircuit> {
     /// If true each visit call will visit by default the superclass.
     final boolean visitSuper;

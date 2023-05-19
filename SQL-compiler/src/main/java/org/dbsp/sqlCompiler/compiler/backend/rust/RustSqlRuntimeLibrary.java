@@ -51,7 +51,6 @@ public class RustSqlRuntimeLibrary {
     private final LinkedHashMap<String, DBSPOpcode> doubleFunctions = new LinkedHashMap<>();
     private final LinkedHashMap<String, DBSPOpcode> stringFunctions = new LinkedHashMap<>();
     private final LinkedHashMap<String, DBSPOpcode> booleanFunctions = new LinkedHashMap<>();
-    private final Set<String> comparisons = new HashSet<>();
     private final Set<DBSPOpcode> handWritten = new HashSet<>();
 
     public static final RustSqlRuntimeLibrary INSTANCE =new RustSqlRuntimeLibrary();
@@ -147,46 +146,32 @@ public class RustSqlRuntimeLibrary {
         this.booleanFunctions.put("is_not_false", DBSPOpcode.IS_NOT_FALSE);
         this.booleanFunctions.put("agg_min", DBSPOpcode.AGG_MIN);
         this.booleanFunctions.put("agg_max", DBSPOpcode.AGG_MAX);
-
-        this.comparisons.add("==");
-        this.comparisons.add("!=");
-        this.comparisons.add(">=");
-        this.comparisons.add("<=");
-        this.comparisons.add(">");
-        this.comparisons.add("<");
-        this.comparisons.add("is_distinct");
     }
 
-    boolean isComparison(String op) {
-        return this.comparisons.contains(op);
-    }
-
-    public static class FunctionDescription {
+     public static class FunctionDescription {
         public final String function;
-        public final DBSPOpcode opcode;
         public final DBSPType returnType;
 
         public FunctionDescription(String function, DBSPOpcode opcode, DBSPType returnType) {
             this.function = function;
             this.returnType = returnType;
-            this.opcode = opcode;
         }
 
         @Override
         public String toString() {
             return "FunctionDescription{" +
                     "function='" + function + '\'' +
-                    ", opcode=" + this.opcode +
                     ", returnType=" + returnType +
                     '}';
         }
     }
 
     public FunctionDescription getImplementation(
-            String op, @Nullable DBSPType expectedReturnType, DBSPType ltype, @Nullable DBSPType rtype) {
-        boolean isAggregate = op.startsWith("agg_");
+            DBSPOpcode opcode, @Nullable DBSPType expectedReturnType,
+            DBSPType ltype, @Nullable DBSPType rtype) {
+        boolean isAggregate = opcode.isAggregate;
         if (ltype.is(DBSPTypeAny.class) || (rtype != null && rtype.is(DBSPTypeAny.class)))
-            throw new RuntimeException("Unexpected type _ for operand of " + op);
+            throw new RuntimeException("Unexpected type _ for operand of " + opcode);
         HashMap<String, DBSPOpcode> map = null;
         boolean anyNull = ltype.mayBeNull || (rtype != null && rtype.mayBeNull);
         String suffixReturn = "";  // suffix based on the return type
@@ -196,7 +181,7 @@ public class RustSqlRuntimeLibrary {
             map = this.booleanFunctions;
         } else if (ltype.is(IsDateType.class)) {
             map = this.dateFunctions;
-            if (op.equals("-")) {
+            if (opcode.equals(DBSPOpcode.SUB)) {
                 if (ltype.is(DBSPTypeTimestamp.class) || ltype.is(DBSPTypeDate.class)) {
                     assert expectedReturnType != null;
                     returnType = expectedReturnType;
@@ -208,20 +193,20 @@ public class RustSqlRuntimeLibrary {
         } else if (ltype.is(DBSPTypeString.class)) {
             map = this.stringFunctions;
         }
-        if (isComparison(op))
+        if (opcode.isComparison())
             returnType = DBSPTypeBool.INSTANCE.setMayBeNull(anyNull);
-        if (op.equals("/"))
+        if (opcode.equals(DBSPOpcode.DIV))
             // Always, for division by 0
             returnType = returnType.setMayBeNull(true);
-        if (op.equals("is_true") || op.equals("is_not_true") ||
-                op.equals("is_false") || op.equals("is_not_false") ||
-                op.equals("is_distinct"))
+        if (opcode.equals(DBSPOpcode.IS_TRUE) || opcode.equals(DBSPOpcode.IS_NOT_TRUE) ||
+                opcode.equals(DBSPOpcode.IS_FALSE) || opcode.equals(DBSPOpcode.IS_NOT_FALSE) ||
+                opcode.equals(DBSPOpcode.IS_DISTINCT))
             returnType = DBSPTypeBool.INSTANCE;
         String suffixl = ltype.nullableSuffix();
         String suffixr = rtype == null ? "" : rtype.nullableSuffix();
         String tsuffixl;
         String tsuffixr;
-        if (isAggregate || op.equals("is_distinct")) {
+        if (isAggregate || opcode.equals(DBSPOpcode.IS_DISTINCT)) {
             tsuffixl = "";
             tsuffixr = "";
         } else {
@@ -229,17 +214,17 @@ public class RustSqlRuntimeLibrary {
             tsuffixr = (rtype == null) ? "" : rtype.to(DBSPTypeBaseType.class).shortName();
         }
         if (map == null)
-            throw new Unimplemented(op);
+            throw new Unimplemented(opcode);
         for (String k: map.keySet()) {
-            DBSPOpcode opcode = map.get(k);
-            if (opcode.toString().equals(op)) {
+            DBSPOpcode inMap = map.get(k);
+            if (opcode.equals(inMap)) {
                 return new FunctionDescription(
                         k + "_" + tsuffixl + suffixl + "_" + tsuffixr + suffixr + suffixReturn,
                         opcode,
                         returnType);
             }
         }
-        throw new Unimplemented("Could not find `" + op + "` for type " + ltype);
+        throw new Unimplemented("Could not find `" + opcode + "` for type " + ltype);
     }
 
     void generateProgram() {
@@ -309,7 +294,7 @@ public class RustSqlRuntimeLibrary {
 
                         // The general rule is: if any operand is NULL, the result is NULL.
                         FunctionDescription function = this.getImplementation(
-                                op.toString(), null, leftType, rightType);
+                                op, null, leftType, rightType);
                         DBSPParameter left = new DBSPParameter("left", leftType);
                         DBSPParameter right = new DBSPParameter("right", rightType);
                         DBSPType type = function.returnType;
@@ -317,9 +302,9 @@ public class RustSqlRuntimeLibrary {
                         if (i == 0) {
                             DBSPExpression leftVar = rawType.var("left");
                             DBSPExpression rightVar = rawType.var("right");
-                            def = new DBSPBinaryExpression(type, function.opcode, leftVar, rightVar, true);
+                            def = new DBSPBinaryExpression(type, op, leftVar, rightVar, true);
                         } else {
-                            def = new DBSPBinaryExpression(type, function.opcode,
+                            def = new DBSPBinaryExpression(type, op,
                                     rawType.var("l"),
                                     rawType.var("r"), true);
                             def = new DBSPMatchExpression(

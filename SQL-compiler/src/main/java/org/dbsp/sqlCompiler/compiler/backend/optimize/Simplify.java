@@ -102,7 +102,7 @@ public class Simplify extends InnerExpressionRewriteVisitor {
         DBSPExpression left = this.transform(expression.left);
         DBSPExpression right = this.transform(expression.right);
         DBSPExpression result = expression;
-        if (expression.operation.equals("&&")) {
+        if (expression.operation.equals(DBSPOpcode.AND)) {
             if (left.is(DBSPBoolLiteral.class)) {
                 DBSPBoolLiteral bLeft = left.to(DBSPBoolLiteral.class);
                 if (bLeft.isNull) {

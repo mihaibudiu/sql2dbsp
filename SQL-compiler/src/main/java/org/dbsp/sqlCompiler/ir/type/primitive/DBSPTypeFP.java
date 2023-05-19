@@ -24,6 +24,7 @@
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
 import org.dbsp.sqlCompiler.ir.type.IsNumericType;
 
 import javax.annotation.Nullable;
@@ -47,5 +48,10 @@ public abstract class DBSPTypeFP extends DBSPTypeBaseType implements IsNumericTy
     public void accept(InnerVisitor visitor) {
         if (!visitor.preorder(this)) return;
         visitor.postorder(this);
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
     }
 }

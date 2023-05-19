@@ -125,7 +125,8 @@ public class AggregateCompiler {
         } else {
             DBSPExpression agg = this.getAggregatedValue();
             if (agg.getNonVoidType().mayBeNull)
-                argument = new DBSPUnaryExpression(function, this.resultType.setMayBeNull(false), "indicator", agg);
+                argument = new DBSPUnaryExpression(function, this.resultType.setMayBeNull(false),
+                        DBSPOpcode.INDICATOR, agg);
             else
                 argument = one;
         }
@@ -249,7 +250,7 @@ public class AggregateCompiler {
         DBSPExpression plusOne = new DBSPI64Literal(1L);
         if (aggregatedValueType.mayBeNull)
             plusOne = new DBSPUnaryExpression(function, DBSPTypeInteger.SIGNED_64,
-                    "indicator", aggregatedValue);
+                    DBSPOpcode.INDICATOR, aggregatedValue);
         if (this.isDistinct) {
             count = ExpressionCompiler.aggregateOperation(
                     function, DBSPOpcode.AGG_ADD,
@@ -279,7 +280,7 @@ public class AggregateCompiler {
 
         DBSPVariablePath a = pairType.var(this.genAccumulatorName());
         DBSPExpression divide = ExpressionCompiler.makeBinaryExpression(
-                function, this.resultType, "/",
+                function, this.resultType, DBSPOpcode.DIV,
                 Linq.list(a.field(sumIndex), a.field(countIndex)));
         divide = divide.cast(this.nullableResultType);
         DBSPClosureExpression post = new DBSPClosureExpression(

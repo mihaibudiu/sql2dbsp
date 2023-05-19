@@ -49,6 +49,11 @@ public class DBSPTypeTimestamp extends DBSPTypeBaseType
     }
 
     @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
+    }
+
+    @Override
     public void accept(InnerVisitor visitor) {
         if (!visitor.preorder(this)) return;
         visitor.postorder(this);

@@ -76,6 +76,11 @@ public class DBSPTypeMillisInterval extends DBSPTypeBaseType implements IsNumeri
     }
 
     @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
+    }
+
+    @Override
     public DBSPLiteral getZero() {
         return new DBSPIntervalMillisLiteral(0, this.mayBeNull);
     }

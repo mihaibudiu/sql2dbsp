@@ -26,7 +26,6 @@ package org.dbsp.sqllogictest.executors;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.dbsp.sqllogictest.*;
 import org.dbsp.util.Logger;
 import org.dbsp.util.StringPrintStream;
@@ -34,7 +33,6 @@ import org.dbsp.util.TestStatistics;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 
@@ -89,7 +87,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
 
     @Override
     public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-            throws IOException, SQLException {
+            throws SQLException {
         this.startTest();
         this.statementExecutor.establishConnection();
         this.statementExecutor.dropAllViews();

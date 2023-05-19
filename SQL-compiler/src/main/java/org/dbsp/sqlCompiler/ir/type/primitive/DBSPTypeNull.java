@@ -24,6 +24,8 @@
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPNullLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 
 import javax.annotation.Nullable;
@@ -33,7 +35,7 @@ import java.util.Objects;
  * This type has a single value, NULL.
  */
 public class DBSPTypeNull extends DBSPTypeBaseType {
-    public static final DBSPType INSTANCE =new DBSPTypeNull(null, true);
+    public static final DBSPType INSTANCE = new DBSPTypeNull(null, true);
 
     @SuppressWarnings("SameParameterValue")
     protected DBSPTypeNull(@Nullable Object node, boolean mayBeNull) {
@@ -43,6 +45,11 @@ public class DBSPTypeNull extends DBSPTypeBaseType {
     @Override
     public String shortName() {
         return "null";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return DBSPNullLiteral.INSTANCE;
     }
 
     @Override

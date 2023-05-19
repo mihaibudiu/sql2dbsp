@@ -219,22 +219,21 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
 
     // Like makeBinaryExpression, but accepts multiple operands.
     private static DBSPExpression makeBinaryExpressions(
-            Object node, DBSPType type, String op, List<DBSPExpression> operands) {
+            Object node, DBSPType type, DBSPOpcode opcode, List<DBSPExpression> operands) {
         if (operands.size() < 2)
             throw new Unimplemented(node);
         DBSPExpression accumulator = operands.get(0);
         for (int i = 1; i < operands.size(); i++)
-            accumulator = makeBinaryExpression(node, type, op, Linq.list(accumulator, operands.get(i)));
+            accumulator = makeBinaryExpression(node, type, opcode, Linq.list(accumulator, operands.get(i)));
         return accumulator.cast(type);
     }
 
-    @SuppressWarnings("unused")
-    public static boolean needCommonType(String op, DBSPType result, DBSPType left, DBSPType right) {
+    public static boolean needCommonType(DBSPType result, DBSPType left, DBSPType right) {
         return !left.is(IsDateType.class) && !right.is(IsDateType.class);
     }
 
     public static DBSPExpression makeBinaryExpression(
-            Object node, DBSPType type, String op, List<DBSPExpression> operands) {
+            Object node, DBSPType type, DBSPOpcode opcode, List<DBSPExpression> operands) {
         // Why doesn't Calcite do this?
         if (operands.size() != 2)
             throw new TranslationException("Expected 2 operands, got " + operands.size(), node);
@@ -245,7 +244,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
         DBSPType leftType = left.getNonVoidType();
         DBSPType rightType = right.getNonVoidType();
 
-        if (needCommonType(op, type, leftType, rightType)) {
+        if (needCommonType(type, leftType, rightType)) {
             DBSPType commonBase = reduceType(leftType, rightType);
             if (commonBase.is(DBSPTypeNull.class)) {
                 // Result is always NULL.  Perhaps we should give a warning?
@@ -258,13 +257,13 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
         }
         // TODO: we don't need the whole function here, just the result type.
         RustSqlRuntimeLibrary.FunctionDescription function = RustSqlRuntimeLibrary.INSTANCE.getImplementation(
-                op, type, left.getNonVoidType(), right.getNonVoidType());
-        DBSPExpression call = new DBSPBinaryExpression(node, function.returnType, function.opcode, left, right);
+                opcode, type, left.getNonVoidType(), right.getNonVoidType());
+        DBSPExpression call = new DBSPBinaryExpression(node, function.returnType, opcode, left, right);
         return call.cast(type);
     }
 
     public static DBSPExpression makeUnaryExpression(
-            Object node, DBSPType type, String op, List<DBSPExpression> operands) {
+            Object node, DBSPType type, DBSPOpcode op, List<DBSPExpression> operands) {
         if (operands.size() != 1)
             throw new TranslationException("Expected 1 operands, got " + operands.size(), node);
         DBSPExpression operand = operands.get(0);
@@ -279,7 +278,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
         if (type.mayBeNull) {
             return new DBSPUnaryExpression(
                     expression.getNode(), type.setMayBeNull(false),
-                    "wrap_bool", expression);
+                    DBSPOpcode.WRAP_BOOL, expression);
         }
         return expression;
     }
@@ -300,61 +299,59 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
         DBSPType type = this.typeCompiler.convertType(call.getType());
         switch (call.op.kind) {
             case TIMES:
-                return makeBinaryExpression(call, type, "*", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.MUL, ops);
             case DIVIDE:
                 // We enforce that the type of the result of division is always nullable
                 type = type.setMayBeNull(true);
-                return makeBinaryExpression(call, type, "/", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.DIV, ops);
             case MOD:
-                return makeBinaryExpression(call, type, "%", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.MOD, ops);
             case PLUS:
-                return makeBinaryExpressions(call, type, "+", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.ADD, ops);
             case MINUS:
-                return makeBinaryExpression(call, type, "-", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.SUB, ops);
             case LESS_THAN:
-                return makeBinaryExpression(call, type, "<", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.LT, ops);
             case GREATER_THAN:
-                return makeBinaryExpression(call, type, ">", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.GT, ops);
             case LESS_THAN_OR_EQUAL:
-                return makeBinaryExpression(call, type, "<=", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.LTE, ops);
             case GREATER_THAN_OR_EQUAL:
-                return makeBinaryExpression(call, type, ">=", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.GTE, ops);
             case EQUALS:
-                return makeBinaryExpression(call, type, "==", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.EQ, ops);
             case IS_DISTINCT_FROM:
-                return makeBinaryExpression(call, type, "is_distinct", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.IS_DISTINCT, ops);
             case IS_NOT_DISTINCT_FROM: {
-                DBSPExpression op = makeBinaryExpression(call, type, "is_distinct", ops);
-                return makeUnaryExpression(call, DBSPTypeBool.INSTANCE, "!", Linq.list(op));
+                DBSPExpression op = makeBinaryExpression(call, type, DBSPOpcode.IS_DISTINCT, ops);
+                return makeUnaryExpression(call, DBSPTypeBool.INSTANCE, DBSPOpcode.NOT, Linq.list(op));
             }
             case NOT_EQUALS:
-                return makeBinaryExpression(call, type, "!=", ops);
+                return makeBinaryExpression(call, type, DBSPOpcode.NEQ, ops);
             case OR:
-                return makeBinaryExpressions(call, type, "||", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.OR, ops);
             case AND:
-                return makeBinaryExpressions(call, type, "&&", ops);
-            case DOT:
-                return makeBinaryExpression(call, type, ".", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.AND, ops);
             case NOT:
-                return makeUnaryExpression(call, type, "!", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.NOT, ops);
             case IS_FALSE:
-                return makeUnaryExpression(call, type, "is_false", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.IS_FALSE, ops);
             case IS_NOT_TRUE:
-                return makeUnaryExpression(call, type, "is_not_true", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.IS_NOT_TRUE, ops);
             case IS_TRUE:
-                return makeUnaryExpression(call, type, "is_true", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.IS_TRUE, ops);
             case IS_NOT_FALSE:
-                return makeUnaryExpression(call, type, "is_not_false", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.IS_NOT_FALSE, ops);
             case PLUS_PREFIX:
-                return makeUnaryExpression(call, type, "+", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.UNARY_PLUS, ops);
             case MINUS_PREFIX:
-                return makeUnaryExpression(call, type, "-", ops);
+                return makeUnaryExpression(call, type, DBSPOpcode.NEG, ops);
             case BIT_AND:
-                return makeBinaryExpressions(call, type, "&", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.BW_AND, ops);
             case BIT_OR:
-                return makeBinaryExpressions(call, type, "|", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.BW_OR, ops);
             case BIT_XOR:
-                return makeBinaryExpressions(call, type, "^", ops);
+                return makeBinaryExpressions(call, type, DBSPOpcode.XOR, ops);
             case CAST:
             case REINTERPRET:
                 return ops.get(0).cast(type);
@@ -370,7 +367,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                     else
                         return new DBSPUnaryExpression(call,
                                 type,
-                                "!",
+                                DBSPOpcode.NOT,
                                 ops.get(0).is_null());
                 } else {
                     // Constant-fold
@@ -403,7 +400,8 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                         if (!alt.getNonVoidType().sameType(finalType))
                             alt = alt.cast(finalType);
                         DBSPExpression comp = makeBinaryExpression(
-                                call, DBSPTypeBool.INSTANCE, "==", Linq.list(value, ops.get(i)));
+                                call, DBSPTypeBool.INSTANCE, DBSPOpcode.EQ,
+                                Linq.list(value, ops.get(i)));
                         comp = wrapBoolIfNeeded(comp);
                         result = new DBSPIfExpression(call, comp, alt, result);
                     }
@@ -480,7 +478,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                         return new DBSPApplyExpression(function, DBSPTypeDouble.INSTANCE.setMayBeNull(anyNull), left, right);
                     }
                     case "division":
-                        return makeBinaryExpression(call, type, "/", ops);
+                        return makeBinaryExpression(call, type, DBSPOpcode.DIV, ops);
                     case "cardinality": {
                         if (call.operands.size() != 1)
                             throw new Unimplemented(call);
@@ -514,7 +512,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                 //noinspection SwitchStatementWithTooFewBranches
                 switch (opName) {
                     case "||":
-                        return makeBinaryExpression(call, type, "||", ops);
+                        return makeBinaryExpression(call, type, DBSPOpcode.CONCAT, ops);
                     default:
                         break;
                 }
@@ -547,6 +545,7 @@ public class ExpressionCompiler extends RexVisitorImpl<DBSPExpression> implement
                     throw new Unimplemented(call);
                 return new DBSPIndexExpression(call, ops.get(0), ops.get(1).cast(DBSPTypeUSize.INSTANCE));
             }
+            case DOT:
             default:
                 throw new Unimplemented(call);
         }

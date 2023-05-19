@@ -108,6 +108,14 @@ public class ToRustInnerVisitor extends InnerVisitor {
     }
 
     @Override
+    public boolean preorder(DBSPSomeExpression expression) {
+        this.builder.append("Some(");
+        expression.expression.accept(this);
+        this.builder.append(")");
+        return false;
+    }
+
+    @Override
     public boolean preorder(DBSPIndexExpression expression) {
         this.builder.append("(");
         expression.array.accept(this);
@@ -424,7 +432,7 @@ public class ToRustInnerVisitor extends InnerVisitor {
                 return false;
             }
             RustSqlRuntimeLibrary.FunctionDescription function = RustSqlRuntimeLibrary.INSTANCE.getImplementation(
-                    expression.operation.toString(),
+                    expression.operation,
                     expression.getNonVoidType(),
                     expression.left.getNonVoidType(),
                     expression.right.getNonVoidType());
@@ -457,10 +465,10 @@ public class ToRustInnerVisitor extends InnerVisitor {
 
     @Override
     public boolean preorder(DBSPUnaryExpression expression) {
-        if (expression.operation.equals("wrap_bool") ||
-            expression.operation.equals("indicator") ||
-            expression.operation.startsWith("is_")) {
-            this.builder.append(expression.operation)
+        if (expression.operation.equals(DBSPOpcode.WRAP_BOOL) ||
+            expression.operation.equals(DBSPOpcode.INDICATOR) ||
+            expression.operation.toString().startsWith("is_")) {
+            this.builder.append(expression.operation.toString())
                     .append("(");
             expression.source.accept(this);
             this.builder.append(")");
@@ -472,7 +480,7 @@ public class ToRustInnerVisitor extends InnerVisitor {
             expression.source.accept(this);
             this.builder.append(" {").increase()
                     .append("Some(x) => Some(")
-                    .append(expression.operation)
+                    .append(expression.operation.toString())
                     .append("(x)),\n")
                     .append("_ => None,\n")
                     .decrease()
@@ -480,7 +488,7 @@ public class ToRustInnerVisitor extends InnerVisitor {
                     .append(")");
         } else {
             this.builder.append("(")
-                    .append(expression.operation);
+                    .append(expression.operation.toString());
             expression.source.accept(this);
             this.builder.append(")");
         }

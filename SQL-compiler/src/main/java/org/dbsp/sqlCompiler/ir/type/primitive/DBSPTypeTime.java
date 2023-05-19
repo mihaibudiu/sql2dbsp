@@ -23,8 +23,10 @@
 
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
+import org.apache.calcite.util.TimeString;
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPTimeLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.IsDateType;
 import org.dbsp.sqlCompiler.ir.type.IsNumericType;
@@ -34,7 +36,7 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public class DBSPTypeTime extends DBSPTypeBaseType implements IsNumericType, IsDateType {
-    public static final DBSPTypeTime INSTANCE =new DBSPTypeTime(null, false);
+    public static final DBSPTypeTime INSTANCE = new DBSPTypeTime(null, false);
     public static final DBSPTypeTime NULLABLE_INSTANCE = new DBSPTypeTime(null, true);
 
     protected DBSPTypeTime(@Nullable Object node, boolean mayBeNull) {
@@ -44,6 +46,11 @@ public class DBSPTypeTime extends DBSPTypeBaseType implements IsNumericType, IsD
     @Override
     public String shortName() {
         return "time";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return new DBSPTimeLiteral(null, this, new TimeString(0, 0, 0));
     }
 
     @Override

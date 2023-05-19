@@ -538,8 +538,6 @@ public class CalciteToDBSPCompiler extends RelVisitor
         if (!shouldFilter) return input;
 
         DBSPVariablePath var = rowType.ref().var("r");
-        DBSPExpression some = var.applyClone().some();
-        DBSPExpression none = DBSPLiteral.none(some.getNonVoidType());
         // Build a condition that checks whether any of the key fields is null.
         @Nullable
         DBSPExpression condition = null;
@@ -554,11 +552,12 @@ public class CalciteToDBSPCompiler extends RelVisitor
                             join, DBSPTypeBool.INSTANCE, DBSPOpcode.OR, condition, expr);
             }
         }
-        DBSPExpression check = new DBSPIfExpression(join, Objects.requireNonNull(condition), none, some);
-        DBSPClosureExpression filterFunc = check.closure(var.asParameter());
-        DBSPExpression ff = this.declare("filter", filterFunc);
 
-        DBSPOperator filter = new DBSPFlatMapOperator(join, ff, TypeCompiler.makeZSet(rowType), input);
+        Objects.requireNonNull(condition);
+        condition = new DBSPUnaryExpression(join, condition.getNonVoidType(), DBSPOpcode.NOT, condition);
+        DBSPClosureExpression filterFunc = condition.closure(var.asParameter());
+        DBSPExpression ff = this.declare("filter", filterFunc);
+        DBSPFilterOperator filter = new DBSPFilterOperator(join, ff, input);
         this.circuit.addOperator(filter);
         return filter;
     }
