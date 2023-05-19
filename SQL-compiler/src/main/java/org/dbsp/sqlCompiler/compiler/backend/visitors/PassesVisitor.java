@@ -30,7 +30,6 @@ import org.dbsp.util.IModule;
 import org.dbsp.util.Linq;
 import org.dbsp.util.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class PassesVisitor extends CircuitVisitor implements IModule {

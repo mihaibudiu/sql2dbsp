@@ -394,12 +394,12 @@ public class CalciteCompiler implements IModule {
      * below: for each invocation of parseStatements we create a new SqlParser.
      * There is no way to reuse the previous parser one, unfortunately.
      */
-    StringBuilder newlines = new StringBuilder();
+    final StringBuilder newlines = new StringBuilder();
 
     SqlParser createSqlParser(String sql) {
         // This function can be invoked multiple times.
         // In order to get correct line numbers, we feed the parser extra empty lines
-        // before the statements we compile in this round..
+        // before the statements we compile in this round.
         String toParse = newlines + sql;
         SqlParser sqlParser = SqlParser.create(toParse, this.parserConfig);
         int lines = sql.split("\n").length;

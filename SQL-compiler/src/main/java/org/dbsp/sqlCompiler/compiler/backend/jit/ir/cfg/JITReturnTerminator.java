@@ -53,9 +53,4 @@ public class JITReturnTerminator extends JITBlockTerminator {
         return builder.append("return ")
                 .append(this.retVal);
     }
-
-    @Override
-    public void addArgument(JITInstructionReference arg) {
-        throw new UnsupportedOperationException("Return blocks should have no arguments");
-    }
 }

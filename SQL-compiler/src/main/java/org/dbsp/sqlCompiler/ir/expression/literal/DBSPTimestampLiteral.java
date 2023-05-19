@@ -43,6 +43,10 @@ public class DBSPTimestampLiteral extends DBSPLiteral {
         this(null, DBSPTypeTimestamp.INSTANCE, value);
     }
 
+    public DBSPTimestampLiteral() {
+        super(null, DBSPTypeTimestamp.NULLABLE_INSTANCE, null);
+    }
+
     static TimestampString createTimestampString(String timestamp) {
         // TimestampString is too smart: it does not accept a number that ends in 0 if there is a decimal point
         String[] parts = timestamp.split("[.]");

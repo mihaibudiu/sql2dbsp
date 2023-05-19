@@ -105,6 +105,11 @@ public class DBSPTypeDecimal extends DBSPTypeBaseType
     }
 
     @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
+    }
+
+    @Override
     public boolean sameType(@Nullable DBSPType type) {
         if (!super.sameType(type))
             return false;

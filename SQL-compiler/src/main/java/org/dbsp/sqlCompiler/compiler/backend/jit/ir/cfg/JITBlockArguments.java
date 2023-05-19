@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionReference;
+import org.dbsp.util.IIndentStream;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,5 +49,10 @@ public class JITBlockArguments extends JITNode {
         for (JITInstructionReference a: this.arguments)
             result.add(a.getId());
         return result;
+    }
+
+    @Override
+    public IIndentStream toString(IIndentStream builder) {
+        return builder.joinI(", ", this.arguments);
     }
 }

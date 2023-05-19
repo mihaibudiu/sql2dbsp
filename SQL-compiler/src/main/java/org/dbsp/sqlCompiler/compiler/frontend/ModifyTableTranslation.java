@@ -35,7 +35,6 @@ import org.dbsp.sqlCompiler.ir.expression.DBSPTupleExpression;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPZSetLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
-import org.dbsp.sqlCompiler.ir.type.DBSPTypeZSet;
 import org.dbsp.util.TranslationException;
 import org.dbsp.util.Unimplemented;
 import org.dbsp.util.Utilities;

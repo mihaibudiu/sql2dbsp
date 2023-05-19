@@ -122,6 +122,11 @@ public class DBSPTypeInteger extends DBSPTypeBaseType
         return (this.signed ? "i" : "u") + this.width;
     }
 
+    @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
+    }
+
     public int getWidth() {
         return this.width;
     }

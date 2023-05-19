@@ -37,7 +37,7 @@ import org.dbsp.util.Linq;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JITRowType extends JITType implements IJITId {
+public class JITRowType extends JITType implements IJITId, IJitKvOrRowType {
     static class NullableScalarType extends JITNode {
         public final boolean nullable;
         public final JITScalarType type;
@@ -57,7 +57,7 @@ public class JITRowType extends JITType implements IJITId {
 
         @Override
         public String toString() {
-            return (this.nullable ? "?" : "") + this.type.toString();
+            return (this.nullable ? "?" : "") + this.type;
         }
     }
 
@@ -94,12 +94,15 @@ public class JITRowType extends JITType implements IJITId {
         ObjectNode result = jsonFactory().createObjectNode();
         ArrayNode columns = result.putArray("columns");
         if (this.fields.isEmpty()) {
+            // This is a weird representation for the unit type:
+            // it has a column with a unit type.  Logically it should
+            // have been an empty set of columns.
             ObjectNode col = columns.addObject();
             col.put("nullable", false);
             col.put("ty", "Unit");
         } else {
-            for (int i = 0; i < this.fields.size(); i++)
-                columns.add(this.fields.get(i).asJson());
+            for (NullableScalarType field : this.fields)
+                columns.add(field.asJson());
         }
         return result;
     }
@@ -113,5 +116,11 @@ public class JITRowType extends JITType implements IJITId {
     @Override
     public IIndentStream toString(IIndentStream builder) {
         return builder.append(this.toString());
+    }
+
+    @Override
+    public void addDescriptionTo(ObjectNode parent, String label) {
+        ObjectNode set = parent.putObject(label);
+        set.put("Set", this.getId());
     }
 }

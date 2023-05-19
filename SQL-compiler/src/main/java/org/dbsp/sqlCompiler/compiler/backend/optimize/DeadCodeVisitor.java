@@ -44,7 +44,7 @@ public class DeadCodeVisitor extends CircuitVisitor implements IModule {
     public final Set<DBSPOperator> reachable = new HashSet<>();
     // Includes reachable plus all inputs
     public final Set<DBSPOperator> toKeep = new HashSet<>();
-    ICompilerComponent component;
+    final ICompilerComponent component;
 
     public DeadCodeVisitor(ICompilerComponent component) {
         super(true);

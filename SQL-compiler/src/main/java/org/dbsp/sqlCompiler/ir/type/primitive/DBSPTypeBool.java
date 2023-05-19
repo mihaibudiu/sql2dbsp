@@ -24,6 +24,8 @@
 package org.dbsp.sqlCompiler.ir.type.primitive;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPBoolLiteral;
+import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 
 import javax.annotation.Nullable;
@@ -47,6 +49,11 @@ public class DBSPTypeBool extends DBSPTypeBaseType {
     @Override
     public String shortName() {
         return "b";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return this.mayBeNull ? DBSPBoolLiteral.NULLABLE_FALSE : DBSPBoolLiteral.FALSE;
     }
 
     public boolean sameType(@Nullable DBSPType type) {

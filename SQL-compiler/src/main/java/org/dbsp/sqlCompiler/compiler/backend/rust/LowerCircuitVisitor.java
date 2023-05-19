@@ -130,7 +130,7 @@ public class LowerCircuitVisitor extends CircuitCloneVisitor {
         if (flatmap.indexType != null) {
             resultColumns.add(elem.field(1));
             resultColumns.add(new DBSPBinaryExpression(null,
-                    DBSPTypeUSize.INSTANCE, "+",
+                    DBSPTypeUSize.INSTANCE, DBSPOpcode.ADD,
                     elem.field(0),
                     new DBSPUSizeLiteral(1)).cast(flatmap.indexType));
         } else {
@@ -155,7 +155,7 @@ public class LowerCircuitVisitor extends CircuitCloneVisitor {
 
     @Override
     public void postorder(DBSPFlatMapOperator node) {
-        DBSPOperator result = node;
+        DBSPOperator result;
         if (node.getFunction().is(DBSPFlatmap.class)) {
             List<DBSPOperator> sources = Linq.map(node.inputs, this::mapped);
             DBSPExpression function = this.rewriteFlatmap(node.getFunction().to(DBSPFlatmap.class));

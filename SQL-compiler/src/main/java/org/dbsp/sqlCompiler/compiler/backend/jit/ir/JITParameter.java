@@ -25,7 +25,6 @@ package org.dbsp.sqlCompiler.compiler.backend.jit.ir;
 
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionReference;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITRowType;
 import org.dbsp.util.IIndentStream;
 
@@ -56,12 +55,5 @@ public class JITParameter extends JITReference {
     @Override
     public IIndentStream toString(IIndentStream builder) {
         return builder.append(this.toString());
-    }
-
-    /**
-     * Parameters are referred to in the JIT the same as instructions.
-     */
-    public JITInstructionReference getInstructionReference() {
-        return new JITInstructionReference(this.getId());
     }
 }

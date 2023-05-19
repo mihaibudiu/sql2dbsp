@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITF64Type extends JITScalarType {
-    public static JITF64Type INSTANCE = new JITF64Type();
+    public static final JITF64Type INSTANCE = new JITF64Type();
 
     protected JITF64Type() {
         super("F64");

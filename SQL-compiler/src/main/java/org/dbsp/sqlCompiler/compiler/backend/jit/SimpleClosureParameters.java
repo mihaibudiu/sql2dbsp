@@ -47,11 +47,11 @@ public class SimpleClosureParameters
         extends InnerExpressionRewriteVisitor
         implements IModule {
     final SubstitutionContext<List<DBSPVariablePath>> context;
-    NameGen generator;
+    final NameGen generator;
 
     public SimpleClosureParameters() {
         this.context = new SubstitutionContext<>();
-        this.generator = new NameGen("_p");
+        this.generator = new NameGen("p_");
     }
 
     @Override

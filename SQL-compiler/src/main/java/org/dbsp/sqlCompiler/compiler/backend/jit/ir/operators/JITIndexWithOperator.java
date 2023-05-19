@@ -44,8 +44,9 @@ public class JITIndexWithOperator extends JITOperator {
     @Override
     public BaseJsonNode asJson() {
         ObjectNode result = (ObjectNode)super.asJson();
-        result.put("key_layout", this.keyType.getId());
-        result.put("value_layout", this.valueType.getId());
+        ObjectNode index = this.getInnerObject(result);
+        index.put("key_layout", this.keyType.getId());
+        index.put("value_layout", this.valueType.getId());
         return result;
     }
 }

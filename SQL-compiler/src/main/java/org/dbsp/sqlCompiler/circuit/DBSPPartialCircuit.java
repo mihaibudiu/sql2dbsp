@@ -117,10 +117,6 @@ public class DBSPPartialCircuit extends DBSPNode implements IDBSPOuterNode, IMod
         return this.operatorDeclarations.get(tableName);
     }
 
-    public IDBSPDeclaration getDefinition(String name) {
-        return Utilities.getExists(this.declarations, name);
-    }
-
     @Override
     public void accept(CircuitVisitor visitor) {
         if (!visitor.preorder(this)) return;
@@ -139,7 +135,7 @@ public class DBSPPartialCircuit extends DBSPNode implements IDBSPOuterNode, IMod
     }
 
     /**
-     * If an expression is a variable name, resolve it's value by looking it
+     * If an expression is a variable name, resolve its value by looking it
      * up in the declarations of the current circuit.
      */
     public DBSPExpression resolve(DBSPExpression expression) {

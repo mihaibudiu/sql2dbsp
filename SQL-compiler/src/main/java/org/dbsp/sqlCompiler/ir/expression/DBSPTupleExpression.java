@@ -23,7 +23,6 @@
 
 package org.dbsp.sqlCompiler.ir.expression;
 
-import org.dbsp.sqlCompiler.compiler.frontend.ExpressionCompiler;
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
 import org.dbsp.sqlCompiler.ir.type.DBSPType;
 import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
@@ -35,14 +34,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DBSPTupleExpression extends DBSPBaseTupleExpression {
-    public final DBSPExpression[] fields;
-
-    public int size() { return this.fields.length; }
+    public final boolean isNull;
 
     public DBSPTupleExpression(@Nullable Object object, boolean mayBeNull, DBSPExpression... expressions) {
         super(object,
-                new DBSPTypeTuple(null, mayBeNull, Linq.map(expressions, DBSPExpression::getType, DBSPType.class)));
-        this.fields = expressions;
+                new DBSPTypeTuple(null, mayBeNull, Linq.map(expressions, DBSPExpression::getType, DBSPType.class)),
+                expressions);
+        this.isNull = false;
+    }
+
+    /**
+     * A tuple with value 'null'.
+     */
+    public DBSPTupleExpression(DBSPTypeTuple type) {
+        super(null, type);
+        this.isNull = true;
     }
 
     public DBSPTupleExpression(DBSPExpression... expressions) {

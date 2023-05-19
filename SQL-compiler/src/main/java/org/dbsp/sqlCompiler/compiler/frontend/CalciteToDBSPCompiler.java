@@ -85,8 +85,6 @@ public class CalciteToDBSPCompiler extends RelVisitor
 
     // Result is deposited here
     private DBSPPartialCircuit circuit;
-    // Occasionally we need to invoke some services of the calcite compiler.
-    public final CalciteCompiler calciteCompiler;
     // Map each compiled RelNode operator to its DBSP implementation.
     final Map<RelNode, DBSPOperator> nodeOperator;
     final TableContents tableContents;
@@ -95,16 +93,14 @@ public class CalciteToDBSPCompiler extends RelVisitor
 
     /**
      * Create a compiler that translated from calcite to DBSP circuits.
-     * @param calciteCompiler     Calcite compiler.
      * @param trackTableContents  If true this compiler will track INSERT and DELETE statements.
      * @param options             Options for compilation.
      * @param compiler            Parent compiler; used to report errors.
      */
-    public CalciteToDBSPCompiler(CalciteCompiler calciteCompiler, boolean trackTableContents,
+    public CalciteToDBSPCompiler(boolean trackTableContents,
                                  CompilerOptions options, DBSPCompiler compiler) {
         this.circuit = new DBSPPartialCircuit(compiler);
         this.compiler = compiler;
-        this.calciteCompiler = calciteCompiler;
         this.nodeOperator = new HashMap<>();
         this.tableContents = new TableContents(compiler, trackTableContents);
         this.options = options;
@@ -542,8 +538,6 @@ public class CalciteToDBSPCompiler extends RelVisitor
         if (!shouldFilter) return input;
 
         DBSPVariablePath var = rowType.ref().var("r");
-        DBSPExpression some = var.applyClone().some();
-        DBSPLiteral none = DBSPLiteral.none(some.getNonVoidType());
         // Build a condition that checks whether any of the key fields is null.
         @Nullable
         DBSPExpression condition = null;
@@ -554,14 +548,16 @@ public class CalciteToDBSPCompiler extends RelVisitor
                 if (condition == null)
                     condition = expr;
                 else
-                    condition = new DBSPBinaryExpression(join, DBSPTypeBool.INSTANCE, "||", condition, expr);
+                    condition = new DBSPBinaryExpression(
+                            join, DBSPTypeBool.INSTANCE, DBSPOpcode.OR, condition, expr);
             }
         }
-        DBSPExpression check = new DBSPIfExpression(join, Objects.requireNonNull(condition), none, some);
-        DBSPClosureExpression filterFunc = check.closure(var.asParameter());
-        DBSPExpression ff = this.declare("filter", filterFunc);
 
-        DBSPOperator filter = new DBSPFlatMapOperator(join, ff, TypeCompiler.makeZSet(rowType), input);
+        Objects.requireNonNull(condition);
+        condition = new DBSPUnaryExpression(join, condition.getNonVoidType(), DBSPOpcode.NOT, condition);
+        DBSPClosureExpression filterFunc = condition.closure(var.asParameter());
+        DBSPExpression ff = this.declare("filter", filterFunc);
+        DBSPFilterOperator filter = new DBSPFilterOperator(join, ff, input);
         this.circuit.addOperator(filter);
         return filter;
     }
@@ -881,7 +877,8 @@ public class CalciteToDBSPCompiler extends RelVisitor
 
         DBSPTypeTuple currentTupleType = inputRowType;
         DBSPOperator lastOperator = input;
-        for (Window.Group group: window.groups) {
+        for (Window.Group group: window.groups) //noinspection GrazieInspection
+        {
             if (lastOperator != input)
                 this.circuit.addOperator(lastOperator);
             List<RelFieldCollation> orderKeys = group.orderKeys.getFieldCollations();

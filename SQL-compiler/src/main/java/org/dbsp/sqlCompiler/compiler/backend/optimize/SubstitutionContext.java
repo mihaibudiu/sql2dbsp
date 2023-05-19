@@ -42,7 +42,7 @@ public class SubstitutionContext<T> {
     }
 
     public void newContext() {
-        this.stack.add(new Substitution<T>());
+        this.stack.add(new Substitution<>());
     }
 
     public void popContext() {

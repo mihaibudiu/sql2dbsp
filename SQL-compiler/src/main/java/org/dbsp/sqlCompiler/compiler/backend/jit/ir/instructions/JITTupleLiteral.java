@@ -26,6 +26,7 @@ package org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITScalarType;
 import org.dbsp.sqlCompiler.ir.expression.DBSPExpression;
 import org.dbsp.sqlCompiler.ir.expression.DBSPTupleExpression;
 import org.dbsp.sqlCompiler.ir.expression.literal.DBSPLiteral;
@@ -40,7 +41,8 @@ public class JITTupleLiteral extends JITValue {
     public JITTupleLiteral(DBSPTupleExpression expression) {
         this.fields = new ArrayList<>(expression.size());
         for (DBSPExpression e: expression.fields) {
-            JITLiteral literal = new JITLiteral(e.to(DBSPLiteral.class));
+            JITScalarType type = JITScalarType.scalarType(e.getNonVoidType());
+            JITLiteral literal = new JITLiteral(e.to(DBSPLiteral.class), type);
             this.fields.add(literal);
         }
     }

@@ -77,10 +77,9 @@ public class Main {
             this.options = options;
         }
 
-        @SuppressWarnings("ConstantConditions")
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            SqlSLTTestExecutor executor = null;
+            SqlSLTTestExecutor executor;
             try {
                 executor = this.options.getExecutor();
             } catch (IOException | SQLException e) {

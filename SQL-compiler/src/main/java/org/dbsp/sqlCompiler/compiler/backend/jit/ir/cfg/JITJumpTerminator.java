@@ -28,19 +28,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.util.IIndentStream;
 
 public class JITJumpTerminator extends JITBlockTerminator {
-    public final JITBlockReference target;
+    public final JITBlockDestination target;
 
-    public JITJumpTerminator(JITBlockReference target) {
+    public JITJumpTerminator(JITBlockDestination target) {
         this.target = target;
-        target.mustBeValid();
+        target.target.mustBeValid();
     }
 
     @Override
     public BaseJsonNode asJson() {
         ObjectNode result = jsonFactory().createObjectNode();
         ObjectNode jump = result.putObject("Jump");
-        jump.put("target", target.getId());
-        jump.set("params", this.arguments.asJson());
+        jump.put("target", target.target.getId());
+        jump.set("params", target.arguments.asJson());
         return result;
     }
 

@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITI64Type extends JITScalarType {
-    public static JITI64Type INSTANCE = new JITI64Type();
+    public static final JITI64Type INSTANCE = new JITI64Type();
 
     protected JITI64Type() {
         super("I64");

@@ -31,10 +31,10 @@ import javax.annotation.Nullable;
 
 public class DBSPUnaryExpression extends DBSPExpression {
     public final DBSPExpression source;
-    public final String operation;
+    public final DBSPOpcode operation;
 
     @SuppressWarnings("ConstantConditions")
-    public DBSPUnaryExpression(@Nullable Object node, DBSPType type, String operation, DBSPExpression operand) {
+    public DBSPUnaryExpression(@Nullable Object node, DBSPType type, DBSPOpcode operation, DBSPExpression operand) {
         super(node, type);
         this.operation = operation;
         this.source = operand;

@@ -47,7 +47,7 @@ import java.util.Objects;
  */
 @SuppressWarnings("JavadocLinkAsPlainText")
 public class PostgresNumericTests extends BaseSQLTests {
-    int width = 25;
+    final int width = 25;
     DBSPCompiler create() {
         String createTables = "CREATE TABLE num_data (id int4, val numeric(" + width + ",10));\n" +
                 "CREATE TABLE num_exp_add (id1 int4, id2 int4, expected numeric(" + width + ",10));\n" +

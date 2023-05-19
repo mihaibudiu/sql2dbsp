@@ -44,10 +44,11 @@ public class JITJoinOperator extends JITOperator {
 
     @Override
     public BaseJsonNode asJson() {
-        ObjectNode result = jsonFactory().createObjectNode();
-        result.put("value_layout", this.valueType.getId());
-        result.put("key_layout", this.keyType.getId());
-        result.put("output_kind", "Set");
+        ObjectNode result = (ObjectNode)super.asJson();
+        ObjectNode join = this.getInnerObject(result);
+        join.put("value_layout", this.valueType.getId());
+        join.put("key_layout", this.keyType.getId());
+        join.put("output_kind", "Set");
         return result;
     }
 }

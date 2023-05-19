@@ -125,7 +125,8 @@ public class AggregateCompiler {
         } else {
             DBSPExpression agg = this.getAggregatedValue();
             if (agg.getNonVoidType().mayBeNull)
-                argument = new DBSPUnaryExpression(function, this.resultType.setMayBeNull(false), "indicator", agg);
+                argument = new DBSPUnaryExpression(function, this.resultType.setMayBeNull(false),
+                        DBSPOpcode.INDICATOR, agg);
             else
                 argument = one;
         }
@@ -133,12 +134,13 @@ public class AggregateCompiler {
         DBSPVariablePath accum = this.resultType.var(this.genAccumulatorName());
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType, accum, argument);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.resultType, accum, argument);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType,
+                    function, DBSPOpcode.AGG_ADD, this.resultType,
                     accum, new DBSPBinaryExpression(function, DBSPTypeInteger.SIGNED_64,
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             argument,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -157,15 +159,15 @@ public class AggregateCompiler {
 
     void processMinMax(SqlMinMaxAggFunction function) {
         DBSPExpression zero = DBSPLiteral.none(this.nullableResultType);
-        String call;
+        DBSPOpcode call;
         String semigroupName;
         switch (function.getKind()) {
             case MIN:
-                call = "min";
+                call = DBSPOpcode.AGG_MIN;
                 semigroupName = "MinSemigroup";
                 break;
             case MAX:
-                call = "max";
+                call = DBSPOpcode.AGG_MAX;
                 semigroupName = "MaxSemigroup";
                 break;
             default:
@@ -188,13 +190,14 @@ public class AggregateCompiler {
 
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.nullableResultType, accum, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.nullableResultType, accum, aggregatedValue);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.nullableResultType,
+                    function, DBSPOpcode.AGG_ADD, this.nullableResultType,
                     accum, new DBSPBinaryExpression(function, 
                             aggregatedValue.getNonVoidType(),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -211,14 +214,15 @@ public class AggregateCompiler {
 
         if (this.isDistinct) {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType, accum, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    this.resultType, accum, aggregatedValue);
         } else {
             increment = ExpressionCompiler.aggregateOperation(
-                    function, "+", this.resultType,
+                    function, DBSPOpcode.AGG_ADD, this.resultType,
                     accum, new DBSPBinaryExpression(
                             function,
                             aggregatedValue.getNonVoidType(),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -246,27 +250,29 @@ public class AggregateCompiler {
         DBSPExpression plusOne = new DBSPI64Literal(1L);
         if (aggregatedValueType.mayBeNull)
             plusOne = new DBSPUnaryExpression(function, DBSPTypeInteger.SIGNED_64,
-                    "indicator", aggregatedValue);
+                    DBSPOpcode.INDICATOR, aggregatedValue);
         if (this.isDistinct) {
             count = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64, countAccumulator, plusOne);
+                    function, DBSPOpcode.AGG_ADD,
+                    i64, countAccumulator, plusOne);
             sum = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64, sumAccumulator, aggregatedValue);
+                    function, DBSPOpcode.AGG_ADD,
+                    i64, sumAccumulator, aggregatedValue);
         } else {
             count = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64,
+                    function, DBSPOpcode.AGG_ADD, i64,
                     countAccumulator, new DBSPBinaryExpression(
                             function,
                             DBSPTypeInteger.SIGNED_64.setMayBeNull(plusOne.getNonVoidType().mayBeNull),
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             plusOne,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
             sum = ExpressionCompiler.aggregateOperation(
-                    function, "+", i64,
+                    function, DBSPOpcode.AGG_ADD, i64,
                     sumAccumulator, new DBSPBinaryExpression(
                             function,
                             i64,
-                            "mul_weight",
+                            DBSPOpcode.MUL_WEIGHT,
                             aggregatedValue,
                             CalciteToDBSPCompiler.WEIGHT_VAR.borrow()));
         }
@@ -274,7 +280,7 @@ public class AggregateCompiler {
 
         DBSPVariablePath a = pairType.var(this.genAccumulatorName());
         DBSPExpression divide = ExpressionCompiler.makeBinaryExpression(
-                function, this.resultType, "/",
+                function, this.resultType, DBSPOpcode.DIV,
                 Linq.list(a.field(sumIndex), a.field(countIndex)));
         divide = divide.cast(this.nullableResultType);
         DBSPClosureExpression post = new DBSPClosureExpression(

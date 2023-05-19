@@ -1,5 +1,6 @@
 SQL to Database Stream Processor Compiler
-Copyright 2022 VMware, Inc.
+Copyright 2022-2023 VMware, Inc.
+Copyright 2023 Feldera, Inc.
 
 The MIT license (the "License") set forth below applies to all parts of the SQL to Database Stream Processor Compiler project. You may not use this file except in compliance with the License.
 

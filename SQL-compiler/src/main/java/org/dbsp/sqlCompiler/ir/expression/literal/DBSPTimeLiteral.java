@@ -39,6 +39,10 @@ public class DBSPTimeLiteral extends DBSPLiteral {
         super(null, DBSPTypeTime.INSTANCE.setMayBeNull(mayBeNull), new TimeString(value));
     }
 
+    public DBSPTimeLiteral() {
+        super(null, DBSPTypeTime.NULLABLE_INSTANCE, null);
+    }
+
     @Override
     public void accept(InnerVisitor visitor) {
         if (!visitor.preorder(this)) return;

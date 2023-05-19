@@ -29,15 +29,13 @@ import org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions.JITInstructionR
 import org.dbsp.util.IIndentStream;
 
 public class JITBranchTerminator extends JITBlockTerminator {
-    public final JITBlockArguments falseArguments;
+    public final JITBlockDestination falsy;
     public final JITInstructionReference condition;
-    public final JITBlockReference truthy;
-    public final JITBlockReference falsy;
+    public final JITBlockDestination truthy;
 
     public JITBranchTerminator(JITInstructionReference condition,
-                               JITBlockReference truthy,
-                               JITBlockReference falsy) {
-        this.falseArguments = new JITBlockArguments();
+                               JITBlockDestination truthy,
+                               JITBlockDestination falsy) {
         // WE use 'this.arguments' for trueArguments
         this.condition = condition;
         this.truthy = truthy;
@@ -50,10 +48,10 @@ public class JITBranchTerminator extends JITBlockTerminator {
         ObjectNode branch = result.putObject("Branch");
         ObjectNode cond = branch.putObject("cond");
         cond.put("Expr", this.condition.getId());
-        branch.set("true_params", this.arguments.asJson());
-        branch.set("false_params", this.falseArguments.asJson());
-        branch.put("falsy", this.falsy.getId());
-        branch.put("truthy", this.truthy.getId());
+        branch.set("true_params", this.truthy.arguments.asJson());
+        branch.set("false_params", this.falsy.arguments.asJson());
+        branch.put("falsy", this.falsy.target.getId());
+        branch.put("truthy", this.truthy.target.getId());
         return result;
     }
 

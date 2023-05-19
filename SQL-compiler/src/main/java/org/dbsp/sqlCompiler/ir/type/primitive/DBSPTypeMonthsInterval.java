@@ -39,7 +39,8 @@ import java.util.Objects;
  * Always stores the interval value in days.
  */
 public class DBSPTypeMonthsInterval extends DBSPTypeBaseType implements IsNumericType, IsDateType {
-    public static final DBSPType INSTANCE =new DBSPTypeMonthsInterval(null, false);
+    public static final DBSPType INSTANCE = new DBSPTypeMonthsInterval(null, false);
+    public static final DBSPType NULLABLE_INSTANCE = new DBSPTypeMonthsInterval(null, true);
 
     public DBSPTypeMonthsInterval(@Nullable Object node, boolean mayBeNull) {
         super(node, mayBeNull);
@@ -71,6 +72,11 @@ public class DBSPTypeMonthsInterval extends DBSPTypeBaseType implements IsNumeri
     @Override
     public String shortName() {
         return "LongInterval";
+    }
+
+    @Override
+    public DBSPLiteral defaultValue() {
+        return this.getZero();
     }
 
     @Override

@@ -1,9 +1,16 @@
 # Contributing to SQL-to-DBSP compiler
 
-The SQL to Database Stream Processor Compiler project team welcomes contributions from the community. Before you start working with database-stream-processor, please
-read our [Developer Certificate of Origin](https://cla.vmware.com/dco). All contributions to this repository must be
-signed as described on that page. Your signature certifies that you wrote the patch or have the right to pass it on
-as an open-source patch.
+The SQL to DBSP Compiler project team welcomes contributions from the
+community.  Before you start working with DBSP, please read our
+[Developer Certificate of Origin
+(DCO)](https://developercertificate.org/).  To acknowledge the DCO,
+sign your commits by adding `Signed-off-by: Your Name
+<your@email.com>` to the last line of each Git commit message.  Your
+signature certifies that you wrote the patch or have the right to pass
+it on as an open-source patch.  The e-mail address used to sign must
+match the e-mail address of the Git author. If you set your
+`user.name` and `user.email` git config values, you can sign your
+commit automatically with `git commit -s`.
 
 ## Contribution Flow
 
@@ -18,7 +25,7 @@ This is a rough outline of what a contributor's workflow looks like:
 Example:
 
 ``` shell
-git remote add upstream https://github.com/vmware/sql-to-dbsp-compiler.git
+git remote add upstream https://github.com/feldera/sql2dbsp.git
 git checkout -b my-new-feature main
 git commit -a
 git push origin my-new-feature
@@ -26,7 +33,7 @@ git push origin my-new-feature
 
 ### Staying In Sync With Upstream
 
-When your branch gets out of sync with the vmware/main branch, use the following to update:
+When your branch gets out of sync with the feldera/main branch, use the following to update:
 
 ``` shell
 git checkout my-new-feature

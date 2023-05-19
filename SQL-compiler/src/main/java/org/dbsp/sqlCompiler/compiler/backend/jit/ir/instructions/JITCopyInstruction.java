@@ -26,14 +26,14 @@ package org.dbsp.sqlCompiler.compiler.backend.jit.ir.instructions;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.dbsp.sqlCompiler.compiler.backend.jit.ir.JITNode;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITType;
+import org.dbsp.sqlCompiler.compiler.backend.jit.ir.types.JITScalarType;
 import org.dbsp.util.IIndentStream;
 
 public class JITCopyInstruction extends JITInstruction {
     public final JITInstructionReference operand;
-    public final JITType type;
+    public final JITScalarType type;
 
-    public JITCopyInstruction(long id, JITInstructionReference operand, JITType type) {
+    public JITCopyInstruction(long id, JITInstructionReference operand, JITScalarType type) {
         super(id, "Copy");
         this.operand = operand;
         this.type = type;

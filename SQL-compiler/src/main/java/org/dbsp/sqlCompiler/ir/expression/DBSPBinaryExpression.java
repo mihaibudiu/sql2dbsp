@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 public class DBSPBinaryExpression extends DBSPExpression {
     public final DBSPExpression left;
     public final DBSPExpression right;
-    public final String operation;
+    public final DBSPOpcode operation;
     /**
      * If 'true' it means that this is a native arithmetic operation (e.g., +).
      * Otherwise this operation generates a runtime call (e.g., plus_i64_i64n).
@@ -40,7 +40,7 @@ public class DBSPBinaryExpression extends DBSPExpression {
      */
     public final boolean primitive;
 
-    public DBSPBinaryExpression(@Nullable Object node, DBSPType type, String operation,
+    public DBSPBinaryExpression(@Nullable Object node, DBSPType type, DBSPOpcode operation,
                                 DBSPExpression left, DBSPExpression right, boolean primitive) {
         super(node, type);
         this.operation = operation;
@@ -49,12 +49,12 @@ public class DBSPBinaryExpression extends DBSPExpression {
         this.primitive = primitive;
     }
 
-    public DBSPBinaryExpression(@Nullable Object node, DBSPType type, String operation,
+    public DBSPBinaryExpression(@Nullable Object node, DBSPType type, DBSPOpcode operation,
                                 DBSPExpression left, DBSPExpression right) {
         this(node, type, operation, left, right, false);
     }
 
-    public DBSPBinaryExpression(DBSPType type, String operation,
+    public DBSPBinaryExpression(DBSPType type, DBSPOpcode operation,
                                 DBSPExpression left, DBSPExpression right, boolean primitive) {
         this(null, type, operation, left, right, primitive);
     }
@@ -68,5 +68,4 @@ public class DBSPBinaryExpression extends DBSPExpression {
         this.right.accept(visitor);
         visitor.postorder(this);
     }
-
 }

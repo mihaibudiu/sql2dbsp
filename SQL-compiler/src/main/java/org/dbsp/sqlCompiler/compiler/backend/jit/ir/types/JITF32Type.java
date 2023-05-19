@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITF32Type extends JITScalarType {
-    public static JITF32Type INSTANCE = new JITF32Type();
+    public static final JITF32Type INSTANCE = new JITF32Type();
 
     protected JITF32Type() {
         super("F32");

@@ -45,14 +45,13 @@ import java.util.*;
  */
 @SuppressWarnings({"FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection", "SpellCheckingInspection"})
 public class RustSqlRuntimeLibrary {
-    private final HashSet<String> aggregateFunctions = new HashSet<>();
-    private final HashMap<String, String> arithmeticFunctions = new HashMap<>();
-    private final HashMap<String, String> dateFunctions = new HashMap<>();
-    private final HashMap<String, String> doubleFunctions = new HashMap<>();
-    private final HashMap<String, String> stringFunctions = new HashMap<>();
-    private final HashMap<String, String> booleanFunctions = new HashMap<>();
-    private final Set<String> comparisons = new HashSet<>();
-    private final Set<String> handWritten = new HashSet<>();
+    private final LinkedHashSet<String> aggregateFunctions = new LinkedHashSet<>();
+    private final LinkedHashMap<String, DBSPOpcode> arithmeticFunctions = new LinkedHashMap<>();
+    private final LinkedHashMap<String, DBSPOpcode> dateFunctions = new LinkedHashMap<>();
+    private final LinkedHashMap<String, DBSPOpcode> doubleFunctions = new LinkedHashMap<>();
+    private final LinkedHashMap<String, DBSPOpcode> stringFunctions = new LinkedHashMap<>();
+    private final LinkedHashMap<String, DBSPOpcode> booleanFunctions = new LinkedHashMap<>();
+    private final Set<DBSPOpcode> handWritten = new HashSet<>();
 
     public static final RustSqlRuntimeLibrary INSTANCE =new RustSqlRuntimeLibrary();
     final LinkedHashMap<String, IDBSPDeclaration> declarations = new LinkedHashMap<>();
@@ -61,117 +60,101 @@ public class RustSqlRuntimeLibrary {
         this.aggregateFunctions.add("count");
         this.aggregateFunctions.add("sum");
         this.aggregateFunctions.add("avg");
-        this.aggregateFunctions.add("min");
-        this.aggregateFunctions.add("max");
+        this.aggregateFunctions.add("agg_min");
+        this.aggregateFunctions.add("agg_max");
         this.aggregateFunctions.add("some");
         this.aggregateFunctions.add("any");
         this.aggregateFunctions.add("every");
         this.aggregateFunctions.add("array_agg");
         this.aggregateFunctions.add("set_agg");
 
-        this.arithmeticFunctions.put("eq", "==");
-        this.arithmeticFunctions.put("neq", "!=");
-        this.arithmeticFunctions.put("lt", "<");
-        this.arithmeticFunctions.put("gt", ">");
-        this.arithmeticFunctions.put("lte", "<=");
-        this.arithmeticFunctions.put("gte", ">=");
-        this.arithmeticFunctions.put("plus", "+");
-        this.arithmeticFunctions.put("minus", "-");
-        this.arithmeticFunctions.put("mod", "%");
-        this.arithmeticFunctions.put("times", "*");
-        this.arithmeticFunctions.put("div", "/");
-        this.arithmeticFunctions.put("shiftr", ">>");
-        this.arithmeticFunctions.put("shiftl", "<<");
-        this.arithmeticFunctions.put("band", "&");
-        this.arithmeticFunctions.put("bor", "|");
-        this.arithmeticFunctions.put("bxor", "^");
-        this.arithmeticFunctions.put("min", "min");
-        this.arithmeticFunctions.put("max", "max");
-        this.arithmeticFunctions.put("is_distinct", "is_distinct");
-        this.arithmeticFunctions.put("agg_plus", "agg_plus");
-        this.arithmeticFunctions.put("agg_min", "agg_min");
-        this.arithmeticFunctions.put("agg_max", "agg_max");
-        this.arithmeticFunctions.put("mul_by_ref", "mul_weight");
+        this.arithmeticFunctions.put("eq", DBSPOpcode.EQ);
+        this.arithmeticFunctions.put("neq", DBSPOpcode.NEQ);
+        this.arithmeticFunctions.put("lt", DBSPOpcode.LT);
+        this.arithmeticFunctions.put("gt", DBSPOpcode.GT);
+        this.arithmeticFunctions.put("lte", DBSPOpcode.LTE);
+        this.arithmeticFunctions.put("gte", DBSPOpcode.GTE);
+        this.arithmeticFunctions.put("plus", DBSPOpcode.ADD);
+        this.arithmeticFunctions.put("minus", DBSPOpcode.SUB);
+        this.arithmeticFunctions.put("mod", DBSPOpcode.MOD);
+        this.arithmeticFunctions.put("times", DBSPOpcode.MUL);
+        this.arithmeticFunctions.put("div", DBSPOpcode.DIV);
+        this.arithmeticFunctions.put("shiftr", DBSPOpcode.SHR);
+        this.arithmeticFunctions.put("shiftl", DBSPOpcode.SHL);
+        this.arithmeticFunctions.put("band", DBSPOpcode.BW_AND);
+        this.arithmeticFunctions.put("bor", DBSPOpcode.BW_OR);
+        this.arithmeticFunctions.put("bxor", DBSPOpcode.XOR);
+        this.arithmeticFunctions.put("min", DBSPOpcode.MIN);
+        this.arithmeticFunctions.put("max", DBSPOpcode.MAX);
+        this.arithmeticFunctions.put("is_distinct", DBSPOpcode.IS_DISTINCT);
+        this.arithmeticFunctions.put("agg_plus", DBSPOpcode.AGG_ADD);
+        this.arithmeticFunctions.put("agg_min", DBSPOpcode.AGG_MIN);
+        this.arithmeticFunctions.put("agg_max", DBSPOpcode.AGG_MAX);
+        this.arithmeticFunctions.put("mul_by_ref", DBSPOpcode.MUL_WEIGHT);
 
-        this.handWritten.add("is_false");
-        this.handWritten.add("is_not_true");
-        this.handWritten.add("is_not_false");
-        this.handWritten.add("is_true");
-        this.handWritten.add("&&");
-        this.handWritten.add("||");
-        this.handWritten.add("min");
-        this.handWritten.add("max");
-        this.handWritten.add("/");
-        this.handWritten.add("is_distinct");
-        this.handWritten.add("is_not_distinct");
-        this.handWritten.add("agg_max");
-        this.handWritten.add("agg_plus");
-        this.handWritten.add("agg_min");
-        this.handWritten.add("mul_weight");
+        this.handWritten.add(DBSPOpcode.IS_FALSE);
+        this.handWritten.add(DBSPOpcode.IS_NOT_TRUE);
+        this.handWritten.add(DBSPOpcode.IS_NOT_FALSE);
+        this.handWritten.add(DBSPOpcode.IS_TRUE);
+        this.handWritten.add(DBSPOpcode.AND);
+        this.handWritten.add(DBSPOpcode.CONCAT);
+        this.handWritten.add(DBSPOpcode.OR);
+        this.handWritten.add(DBSPOpcode.MIN);
+        this.handWritten.add(DBSPOpcode.MAX);
+        this.handWritten.add(DBSPOpcode.DIV);
+        this.handWritten.add(DBSPOpcode.IS_DISTINCT);
+        this.handWritten.add(DBSPOpcode.IS_NOT_DISTINCT);
+        this.handWritten.add(DBSPOpcode.AGG_MAX);
+        this.handWritten.add(DBSPOpcode.AGG_ADD);
+        this.handWritten.add(DBSPOpcode.AGG_MIN);
+        this.handWritten.add(DBSPOpcode.MUL_WEIGHT);
 
-        this.doubleFunctions.put("eq", "==");
-        this.doubleFunctions.put("neq", "!=");
-        this.doubleFunctions.put("lt", "<");
-        this.doubleFunctions.put("gt", ">");
-        this.doubleFunctions.put("lte", "<=");
-        this.doubleFunctions.put("gte", ">=");
-        this.doubleFunctions.put("plus", "+");
-        this.doubleFunctions.put("minus", "-");
-        this.doubleFunctions.put("mod", "%");
-        this.doubleFunctions.put("times", "*");
-        this.doubleFunctions.put("div", "/");
+        this.doubleFunctions.put("eq", DBSPOpcode.EQ);
+        this.doubleFunctions.put("neq", DBSPOpcode.NEQ);
+        this.doubleFunctions.put("lt", DBSPOpcode.LT);
+        this.doubleFunctions.put("gt", DBSPOpcode.GT);
+        this.doubleFunctions.put("lte", DBSPOpcode.LTE);
+        this.doubleFunctions.put("gte", DBSPOpcode.GTE);
+        this.doubleFunctions.put("plus", DBSPOpcode.ADD);
+        this.doubleFunctions.put("minus", DBSPOpcode.SUB);
+        this.doubleFunctions.put("times", DBSPOpcode.MUL);
+        this.doubleFunctions.put("div", DBSPOpcode.DIV);
 
-        this.dateFunctions.put("plus", "+");
-        this.dateFunctions.put("minus", "-");
-        this.dateFunctions.put("times", "*");
-        this.dateFunctions.put("eq", "==");
-        this.dateFunctions.put("neq", "!=");
-        this.dateFunctions.put("lt", "<");
-        this.dateFunctions.put("gt", ">");
-        this.dateFunctions.put("lte", "<=");
-        this.dateFunctions.put("gte", ">=");
+        this.dateFunctions.put("plus", DBSPOpcode.ADD);
+        this.dateFunctions.put("minus", DBSPOpcode.SUB);
+        this.dateFunctions.put("times", DBSPOpcode.MUL);
+        this.dateFunctions.put("eq", DBSPOpcode.EQ);
+        this.dateFunctions.put("neq", DBSPOpcode.NEQ);
+        this.dateFunctions.put("lt", DBSPOpcode.LT);
+        this.dateFunctions.put("gt", DBSPOpcode.GT);
+        this.dateFunctions.put("lte", DBSPOpcode.LTE);
+        this.dateFunctions.put("gte", DBSPOpcode.GTE);
 
-        this.stringFunctions.put("concat", "||");
-        this.stringFunctions.put("eq", "==");
-        this.stringFunctions.put("neq", "!=");
+        this.stringFunctions.put("concat", DBSPOpcode.CONCAT);
+        this.stringFunctions.put("eq", DBSPOpcode.EQ);
+        this.stringFunctions.put("neq", DBSPOpcode.NEQ);
 
-        this.booleanFunctions.put("eq", "==");
-        this.booleanFunctions.put("neq", "!=");
-        this.booleanFunctions.put("and", "&&");
-        this.booleanFunctions.put("or", "||");
-        this.booleanFunctions.put("min", "min");
-        this.booleanFunctions.put("max", "max");
-        this.booleanFunctions.put("is_false", "is_false");
-        this.booleanFunctions.put("is_not_true", "is_not_true");
-        this.booleanFunctions.put("is_true", "is_true");
-        this.booleanFunctions.put("is_not_false", "is_not_false");
-        this.booleanFunctions.put("agg_min", "agg_min");
-        this.booleanFunctions.put("agg_max", "agg_max");
-
-        this.comparisons.add("==");
-        this.comparisons.add("!=");
-        this.comparisons.add(">=");
-        this.comparisons.add("<=");
-        this.comparisons.add(">");
-        this.comparisons.add("<");
-        this.comparisons.add("is_distinct");
-    }
-
-    boolean isComparison(String op) {
-        return this.comparisons.contains(op);
+        this.booleanFunctions.put("eq", DBSPOpcode.EQ);
+        this.booleanFunctions.put("neq", DBSPOpcode.NEQ);
+        this.booleanFunctions.put("and", DBSPOpcode.AND);
+        this.booleanFunctions.put("or", DBSPOpcode.OR);
+        this.booleanFunctions.put("min", DBSPOpcode.MIN);
+        this.booleanFunctions.put("max", DBSPOpcode.MAX);
+        this.booleanFunctions.put("is_false", DBSPOpcode.IS_FALSE);
+        this.booleanFunctions.put("is_not_true", DBSPOpcode.IS_NOT_TRUE);
+        this.booleanFunctions.put("is_true", DBSPOpcode.IS_TRUE);
+        this.booleanFunctions.put("is_not_false", DBSPOpcode.IS_NOT_FALSE);
+        this.booleanFunctions.put("agg_min", DBSPOpcode.AGG_MIN);
+        this.booleanFunctions.put("agg_max", DBSPOpcode.AGG_MAX);
     }
 
     public static class FunctionDescription {
         public final String function;
         public final DBSPType returnType;
 
-        public FunctionDescription(String function, DBSPType returnType) {
+        public FunctionDescription(String function, DBSPOpcode opcode, DBSPType returnType) {
             this.function = function;
             this.returnType = returnType;
-        }
-
-        public DBSPApplyExpression getCall(DBSPExpression... arguments) {
-            return new DBSPApplyExpression(this.function, this.returnType, arguments);
         }
 
         @Override
@@ -184,11 +167,12 @@ public class RustSqlRuntimeLibrary {
     }
 
     public FunctionDescription getImplementation(
-            String op, @Nullable DBSPType expectedReturnType, DBSPType ltype, @Nullable DBSPType rtype) {
-        boolean isAggregate = op.startsWith("agg_");
+            DBSPOpcode opcode, @Nullable DBSPType expectedReturnType,
+            DBSPType ltype, @Nullable DBSPType rtype) {
+        boolean isAggregate = opcode.isAggregate;
         if (ltype.is(DBSPTypeAny.class) || (rtype != null && rtype.is(DBSPTypeAny.class)))
-            throw new RuntimeException("Unexpected type _ for operand of " + op);
-        HashMap<String, String> map = null;
+            throw new RuntimeException("Unexpected type _ for operand of " + opcode);
+        HashMap<String, DBSPOpcode> map = null;
         boolean anyNull = ltype.mayBeNull || (rtype != null && rtype.mayBeNull);
         String suffixReturn = "";  // suffix based on the return type
 
@@ -197,7 +181,7 @@ public class RustSqlRuntimeLibrary {
             map = this.booleanFunctions;
         } else if (ltype.is(IsDateType.class)) {
             map = this.dateFunctions;
-            if (op.equals("-")) {
+            if (opcode.equals(DBSPOpcode.SUB)) {
                 if (ltype.is(DBSPTypeTimestamp.class) || ltype.is(DBSPTypeDate.class)) {
                     assert expectedReturnType != null;
                     returnType = expectedReturnType;
@@ -209,20 +193,20 @@ public class RustSqlRuntimeLibrary {
         } else if (ltype.is(DBSPTypeString.class)) {
             map = this.stringFunctions;
         }
-        if (isComparison(op))
+        if (opcode.isComparison())
             returnType = DBSPTypeBool.INSTANCE.setMayBeNull(anyNull);
-        if (op.equals("/"))
+        if (opcode.equals(DBSPOpcode.DIV))
             // Always, for division by 0
             returnType = returnType.setMayBeNull(true);
-        if (op.equals("is_true") || op.equals("is_not_true") ||
-                op.equals("is_false") || op.equals("is_not_false") ||
-                op.equals("is_distinct"))
+        if (opcode.equals(DBSPOpcode.IS_TRUE) || opcode.equals(DBSPOpcode.IS_NOT_TRUE) ||
+                opcode.equals(DBSPOpcode.IS_FALSE) || opcode.equals(DBSPOpcode.IS_NOT_FALSE) ||
+                opcode.equals(DBSPOpcode.IS_DISTINCT))
             returnType = DBSPTypeBool.INSTANCE;
         String suffixl = ltype.nullableSuffix();
         String suffixr = rtype == null ? "" : rtype.nullableSuffix();
         String tsuffixl;
         String tsuffixr;
-        if (isAggregate || op.equals("is_distinct")) {
+        if (isAggregate || opcode.equals(DBSPOpcode.IS_DISTINCT)) {
             tsuffixl = "";
             tsuffixr = "";
         } else {
@@ -230,15 +214,17 @@ public class RustSqlRuntimeLibrary {
             tsuffixr = (rtype == null) ? "" : rtype.to(DBSPTypeBaseType.class).shortName();
         }
         if (map == null)
-            throw new Unimplemented(op);
+            throw new Unimplemented(opcode);
         for (String k: map.keySet()) {
-            if (map.get(k).equals(op)) {
+            DBSPOpcode inMap = map.get(k);
+            if (opcode.equals(inMap)) {
                 return new FunctionDescription(
                         k + "_" + tsuffixl + suffixl + "_" + tsuffixr + suffixr + suffixReturn,
+                        opcode,
                         returnType);
             }
         }
-        throw new Unimplemented("Could not find `" + op + "` for type " + ltype);
+        throw new Unimplemented("Could not find `" + opcode + "` for type " + ltype);
     }
 
     void generateProgram() {
@@ -259,12 +245,12 @@ public class RustSqlRuntimeLibrary {
                 DBSPTypeFloat.INSTANCE
         };
 
-        for (HashMap<String, String> h: Arrays.asList(
+        for (HashMap<String, DBSPOpcode> h: Arrays.asList(
                 this.arithmeticFunctions, this.booleanFunctions, this.stringFunctions, this.doubleFunctions)) {
             for (String f : h.keySet()) {
-                String op = h.get(f);
+                DBSPOpcode op = h.get(f);
                 if (this.handWritten.contains(op))
-                    // Hand-written rules in a separate library
+                    // Handwritten rules in a separate library
                     continue;
                 for (int i = 0; i < 4; i++) {
                     DBSPType leftType;
@@ -281,7 +267,7 @@ public class RustSqlRuntimeLibrary {
                         raw = numericTypes;
                     }
                     for (DBSPType rawType: raw) {
-                        if (op.equals("%") && rawType.is(DBSPTypeFP.class))
+                        if (op.equals(DBSPOpcode.MOD) && rawType.is(DBSPTypeFP.class))
                             continue;
                         withNull = rawType.setMayBeNull(true);
                         DBSPPattern leftMatch = new DBSPIdentifierPattern("l");
@@ -307,7 +293,8 @@ public class RustSqlRuntimeLibrary {
                         */
 
                         // The general rule is: if any operand is NULL, the result is NULL.
-                        FunctionDescription function = this.getImplementation(op, null, leftType, rightType);
+                        FunctionDescription function = this.getImplementation(
+                                op, null, leftType, rightType);
                         DBSPParameter left = new DBSPParameter("left", leftType);
                         DBSPParameter right = new DBSPParameter("right", rightType);
                         DBSPType type = function.returnType;

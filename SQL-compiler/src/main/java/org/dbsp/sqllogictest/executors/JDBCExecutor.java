@@ -41,8 +41,8 @@ public class JDBCExecutor extends SqlSLTTestExecutor implements IModule {
     @Nullable
     Connection connection;
 
-    String DEFAULT_USER = "";  // no user needed for hsqldb
-    String DEFAULT_PASSWORD = "";  // no password needed for hsqldb
+    final String DEFAULT_USER = "";  // no user needed for hsqldb
+    final String DEFAULT_PASSWORD = "";  // no password needed for hsqldb
 
     // In the end everything is decoded as a string
     static class Row {

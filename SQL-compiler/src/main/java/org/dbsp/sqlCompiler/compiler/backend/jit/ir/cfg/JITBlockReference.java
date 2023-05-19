@@ -29,4 +29,8 @@ public class JITBlockReference extends JITReference {
     public JITBlockReference(long id) {
         super(id);
     }
+
+    JITBlockDestination createDestination() {
+        return new JITBlockDestination(this);
+    }
 }

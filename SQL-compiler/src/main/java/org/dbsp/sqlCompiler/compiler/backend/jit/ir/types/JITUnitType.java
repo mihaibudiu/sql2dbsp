@@ -24,7 +24,7 @@
 package org.dbsp.sqlCompiler.compiler.backend.jit.ir.types;
 
 public class JITUnitType extends JITScalarType {
-    public static JITUnitType INSTANCE = new JITUnitType();
+    public static final JITUnitType INSTANCE = new JITUnitType();
 
     protected JITUnitType() {
         super("Unit");

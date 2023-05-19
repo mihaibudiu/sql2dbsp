@@ -21,22 +21,26 @@
  * SOFTWARE.
  */
 
-package org.dbsp.sqlCompiler.ir.expression.literal;
+package org.dbsp.sqlCompiler.ir.expression;
 
 import org.dbsp.sqlCompiler.ir.InnerVisitor;
 import org.dbsp.sqlCompiler.ir.expression.DBSPExpression;
+import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeBool;
 
 import javax.annotation.Nullable;
 
 /**
- * Represents an expression of the form e.clone().
+ * Given an expression e, this is equivalent with the Rust code
+ * e.is_none().  Obviously, e must have a nullable type.
  */
-public class DBSPCloneExpression extends DBSPExpression {
+public class DBSPIsNullExpression extends DBSPExpression {
     public final DBSPExpression expression;
 
-    public DBSPCloneExpression(@Nullable Object object, DBSPExpression expression) {
-        super(object, expression.getNonVoidType().derefIfNeeded());
+    public DBSPIsNullExpression(@Nullable Object node, DBSPExpression expression) {
+        super(node, DBSPTypeBool.INSTANCE);
         this.expression = expression;
+        if (!expression.getNonVoidType().mayBeNull)
+            throw new RuntimeException("isNull applied to non-nullable expression? " + expression);
     }
 
     @Override

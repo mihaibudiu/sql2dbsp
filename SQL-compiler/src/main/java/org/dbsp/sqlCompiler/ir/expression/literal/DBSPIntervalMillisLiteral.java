@@ -30,6 +30,10 @@ import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeMillisInterval;
 import javax.annotation.Nullable;
 
 public class DBSPIntervalMillisLiteral extends DBSPLiteral {
+    public DBSPIntervalMillisLiteral() {
+        super(null, DBSPTypeMillisInterval.NULLABLE_INSTANCE, null);
+    }
+
     public DBSPIntervalMillisLiteral(@Nullable Object node, DBSPType type, @Nullable Object value) {
         super(node, type, value);
     }

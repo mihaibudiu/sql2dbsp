@@ -43,10 +43,6 @@ public abstract class DBSPComparatorExpression extends DBSPExpression {
         visitor.postorder(this);
     }
 
-    public DBSPComparatorExpression then(@Nullable Object node, int fieldNo, boolean ascending) {
-        return new DBSPFieldComparatorExpression(node, this, fieldNo, ascending);
-    }
-
     /**
      * Type of tuple that is being compared.
      */

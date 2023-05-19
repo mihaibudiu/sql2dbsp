@@ -35,7 +35,7 @@ public class RustFileWriter {
         final Set<Integer> tupleSizesUsed = new HashSet<>();
         final Set<Integer> semigroupSizesUsed = new HashSet<>();
     }
-    StructuresUsed used = new StructuresUsed();
+    final StructuresUsed used = new StructuresUsed();
 
     /**
      * Visitor which discovers some data structures used.
@@ -60,11 +60,11 @@ public class RustFileWriter {
     /**
      * Find resources used.
      */
-    FindResources finder = new FindResources();
-    CircuitVisitor findInCircuit = this.finder.getCircuitVisitor();
-    LowerCircuitVisitor lower = new LowerCircuitVisitor();
-    BetaReduction reducer = new BetaReduction();
-    CircuitFunctionRewriter circuitReducer = reducer.circuitRewriter();
+    final FindResources finder = new FindResources();
+    final CircuitVisitor findInCircuit = this.finder.getCircuitVisitor();
+    final LowerCircuitVisitor lower = new LowerCircuitVisitor();
+    final BetaReduction reducer = new BetaReduction();
+    final CircuitFunctionRewriter circuitReducer = reducer.circuitRewriter();
 
     /**
      * If this is called with 'true' the emitted Rust code will use handles
@@ -250,7 +250,7 @@ public class RustFileWriter {
         this.toWrite.add(function);
     }
 
-    public void write() throws FileNotFoundException, UnsupportedEncodingException {
+    public void write() {
         Simplify simplify = new Simplify();
         CircuitFunctionRewriter simplifier = simplify.circuitRewriter();
         // Lower the circuits
@@ -288,7 +288,7 @@ public class RustFileWriter {
         }
     }
 
-    public void writeAndClose() throws FileNotFoundException, UnsupportedEncodingException {
+    public void writeAndClose() {
         Logger.INSTANCE.setDebugLevel(FindResources.class, 3);
         this.write();
         this.outputStream.close();
