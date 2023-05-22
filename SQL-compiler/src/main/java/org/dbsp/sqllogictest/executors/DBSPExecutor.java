@@ -414,6 +414,8 @@ public class DBSPExecutor extends SqlSltTestExecutor {
         this.startTest();
         int batchSize = 500;
         String name = file.toString();
+        if (name.contains("/"))
+            name = name.substring(name.lastIndexOf('/') + 1);
         if (name.startsWith("select"))
             batchSize = 20;
         if (name.startsWith("select5"))
