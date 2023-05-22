@@ -127,7 +127,7 @@ public class CompilerMain {
         }
         try {
             PrintStream stream = this.getOutputStream();
-            if (this.options.ioOptions.emitJson) {
+            if (this.options.ioOptions.jit) {
                 JITProgram program = ToJitVisitor.circuitToJIT(dbsp);
                 String output = program.asJson().toPrettyString();
                 stream.println(output);

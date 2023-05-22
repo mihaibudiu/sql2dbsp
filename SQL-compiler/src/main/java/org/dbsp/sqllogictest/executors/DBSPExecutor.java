@@ -23,11 +23,17 @@
 
 package org.dbsp.sqllogictest.executors;
 
-import org.apache.calcite.sql.parser.SqlParseException;
+import net.hydromatic.sqllogictest.ISqlTestOperation;
+import net.hydromatic.sqllogictest.OptionsParser;
+import net.hydromatic.sqllogictest.SltSqlStatement;
+import net.hydromatic.sqllogictest.SltTestFile;
+import net.hydromatic.sqllogictest.SqlTestQuery;
+import net.hydromatic.sqllogictest.SqlTestQueryOutputDescription;
+import net.hydromatic.sqllogictest.TestStatistics;
+import net.hydromatic.sqllogictest.executors.SqlSltTestExecutor;
 import org.dbsp.sqlCompiler.circuit.DBSPCircuit;
 import org.dbsp.sqlCompiler.compiler.CompilerOptions;
 import org.dbsp.sqlCompiler.compiler.backend.*;
-import org.dbsp.sqlCompiler.compiler.backend.jit.ToJitVisitor;
 import org.dbsp.sqlCompiler.compiler.backend.rust.RustFileWriter;
 import org.dbsp.sqlCompiler.compiler.frontend.TableContents;
 import org.dbsp.sqlCompiler.compiler.frontend.TypeCompiler;
@@ -42,19 +48,21 @@ import org.dbsp.sqlCompiler.ir.statement.DBSPStatement;
 import org.dbsp.sqlCompiler.ir.type.*;
 import org.dbsp.sqlCompiler.ir.type.primitive.*;
 import org.dbsp.sqllogictest.*;
-import org.dbsp.util.*;
+import org.dbsp.util.Linq;
+import org.dbsp.util.Utilities;
 
 import javax.annotation.Nullable;
 import java.io.*;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Sql test executor that uses DBSP as a SQL runtime.
  * Does not support arbitrary tests: only tests that can be recast as a standing query will work.
  */
-public class DBSPExecutor extends SqlSLTTestExecutor {
+public class DBSPExecutor extends SqlSltTestExecutor {
     /**
      * A pair of a Rust circuit representation and a tester function that can
      * exercise it.
@@ -72,10 +80,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
     static final String rustDirectory = "../temp/src/";
     static final String testFileName = "test";
     private final boolean execute;
-    private final boolean validateJson;
-    private int batchSize;  // Number of queries to execute together
-    private int skip;       // Number of queries to skip in each test file.
-    public final CompilerOptions options;
+    public final CompilerOptions compilerOptions;
 
     private final String connectionString; // either csv or a valid sqlx connection string
     final SqlTestPrepareInput inputPreparation;
@@ -83,27 +88,20 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
     final SqlTestPrepareViews viewPreparation;
     private final List<SqlTestQuery> queriesToRun;
 
-    public void setBatchSize(int batchSize, int skip) {
-        this.batchSize = batchSize;
-        this.skip = skip;
-    }
-
     /**
      * Create an executor that executes SqlLogicTest queries directly compiling to
      * Rust and using the DBSP library.
-     * @param validateJson If true validate the JSON IR representation for each query.
      * @param connectionString Connection string to use to get ground truth from database.
-     * @param execute  If true the tests are executed, otherwise they are only compiled to Rust.
      * @param options  Options to use for compilation.
      */
-    public DBSPExecutor(boolean execute, boolean validateJson, CompilerOptions options, String connectionString) {
-        this.execute = execute;
-        this.validateJson = validateJson;
+    public DBSPExecutor(OptionsParser.SuppliedOptions options,
+                        CompilerOptions compilerOptions, String connectionString) {
+        super(options);
+        this.execute = !options.doNotExecute;
         this.inputPreparation = new SqlTestPrepareInput();
         this.tablePreparation = new SqlTestPrepareTables();
         this.viewPreparation = new SqlTestPrepareViews();
-        this.batchSize = 10;
-        this.options = options;
+        this.compilerOptions = compilerOptions;
         this.queriesToRun = new ArrayList<>();
         this.connectionString = connectionString;
     }
@@ -119,7 +117,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
     }
 
     public TableValue[] getInputSets(DBSPCompiler compiler) throws SQLException {
-        for (SqlStatement statement : this.inputPreparation.statements)
+        for (SltSqlStatement statement : this.inputPreparation.statements)
             compiler.compileStatement(statement.statement, null);
         TableContents tables = compiler.getTableContents();
         TableValue[] tableValues = new TableValue[tables.tablesCreated.size()];
@@ -143,7 +141,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
         }
 
         if (totalSize > 10) {
-            if (connectionString.equals("csv")) {
+            if (this.connectionString.equals("csv")) {
                 // If the data is large write, it to a set of CSV files and read it at runtime.
                 for (int i = 0; i < tables.length; i++) {
                     String fileName = (rustDirectory + tables[i].tableName) + ".csv";
@@ -181,7 +179,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
         DBSPClosureExpression mapClosure = new DBSPClosureExpression(null, tuple,
                 rowVariable.asRefParameter());
         return new DBSPApplyExpression("read_db", tableValue.contents.zsetType,
-                new DBSPStrLiteral(connectionString), new DBSPStrLiteral(tableValue.tableName),
+                new DBSPStrLiteral(this.connectionString), new DBSPStrLiteral(tableValue.tableName),
                 mapClosure);
     }
 
@@ -205,7 +203,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
         DBSPLetStatement let = new DBSPLetStatement(vec.variable,
                 DBSPTypeAny.INSTANCE.path(new DBSPPath("Vec", "new")).call(), true);
         statements.add(let);
-        if (this.options.optimizerOptions.incrementalize) {
+        if (this.compilerOptions.optimizerOptions.incrementalize) {
             for (int i = 0; i < inputType.tupFields.length; i++) {
                 DBSPExpression field = input.getVarReference().field(i);
                 DBSPExpression elems = new DBSPApplyExpression("to_elements",
@@ -250,47 +248,51 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
         return new DBSPFunction("stream_input", Linq.list(), returnType, block);
     }
 
-    void runBatch(TestStatistics result) throws IOException, InterruptedException, SQLException {
-        DBSPCompiler compiler = new DBSPCompiler(this.options);
-        final List<ProgramAndTester> codeGenerated = new ArrayList<>();
-        // Create input tables
-        this.createTables(compiler);
-        compiler.throwIfErrorsOccurred();
-        // Create function which generates inputs for all tests in this batch.
-        // We know that all these tests consume the same input tables.
-        TableValue[] inputSets = this.getInputSets(compiler);
-        DBSPFunction inputFunction = this.createInputFunction(inputSets);
-        DBSPFunction streamInputFunction = this.createStreamInputFunction(inputFunction);
+    void runBatch(TestStatistics result) {
+        try {
+            DBSPCompiler compiler = new DBSPCompiler(this.compilerOptions);
+            final List<ProgramAndTester> codeGenerated = new ArrayList<>();
+            // Create input tables
+            this.createTables(compiler);
+            compiler.throwIfErrorsOccurred();
+            // Create function which generates inputs for all tests in this batch.
+            // We know that all these tests consume the same input tables.
+            TableValue[] inputSets = this.getInputSets(compiler);
+            DBSPFunction inputFunction = this.createInputFunction(inputSets);
+            DBSPFunction streamInputFunction = this.createStreamInputFunction(inputFunction);
 
-        // Generate a function and a tester for each query.
-        int queryNo = 0;
-        for (SqlTestQuery testQuery : this.queriesToRun) {
-            try {
-                ProgramAndTester pc = this.generateTestCase(
-                        compiler, streamInputFunction, this.viewPreparation, testQuery, queryNo);
-                codeGenerated.add(pc);
-            } catch (Throwable ex) {
-                System.err.println("Error while compiling " + testQuery.query + ": " + ex.getMessage());
-                throw ex;
+            // Generate a function and a tester for each query.
+            int queryNo = 0;
+            for (SqlTestQuery testQuery : this.queriesToRun) {
+                try {
+                    ProgramAndTester pc = this.generateTestCase(
+                            compiler, streamInputFunction, this.viewPreparation, testQuery, queryNo);
+                    codeGenerated.add(pc);
+                } catch (Throwable ex) {
+                    System.err.println("Error while compiling " + testQuery.getQuery() + ": " + ex.getMessage());
+                    throw ex;
+                }
+                queryNo++;
             }
-            queryNo++;
-        }
 
-        // Write the code to Rust files on the filesystem.
-        String fileGenerated = this.writeCodeToFile(
-                Linq.list(inputFunction, streamInputFunction), codeGenerated);
-        Utilities.writeRustLib(rustDirectory + "/lib.rs", Linq.list(fileGenerated));
-        this.startTest();
-        if (this.execute) {
-            Utilities.compileAndTestRust(rustDirectory, true);
+            // Write the code to Rust files on the filesystem.
+            String fileGenerated = this.writeCodeToFile(
+                    Linq.list(inputFunction, streamInputFunction), codeGenerated);
+            Utilities.writeRustLib(rustDirectory + "/lib.rs", Linq.list(fileGenerated));
+            this.startTest();
+            if (this.execute) {
+                Utilities.compileAndTestRust(rustDirectory, true);
+            }
+            this.queriesToRun.clear();
+            System.out.println(elapsedTime(queryNo));
+            this.cleanupFilesystem();
+            if (this.execute)
+                result.setPassed(result.getPassed() + queryNo);  // This is not entirely correct, but I am not parsing the rust output
+            else
+                result.setIgnored(result.getIgnored() + queryNo);
+        } catch (SQLException | IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        this.queriesToRun.clear();
-        this.reportTime(queryNo);
-        this.cleanupFilesystem();
-        if (this.execute)
-            result.passed += queryNo;  // This is not entirely correct, but I am not parsing the rust output
-        else
-            result.ignored += queryNo;
     }
 
     ProgramAndTester generateTestCase(
@@ -298,30 +300,25 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
             DBSPFunction inputGeneratingFunction,
             SqlTestPrepareViews viewPreparation,
             SqlTestQuery testQuery, int suffix) {
-        String origQuery = testQuery.query;
+        String origQuery = testQuery.getQuery();
         String dbspQuery = origQuery;
         if (!dbspQuery.toLowerCase().contains("create view"))
             dbspQuery = "CREATE VIEW V AS (" + origQuery + ")";
-        Logger.INSTANCE.from(this, 1)
-                .append("Query ")
-                .append(suffix)
-                .append(":\n")
-                .append(dbspQuery)
-                .append(testQuery.name != null ? " " + testQuery.name : "")
-                .append("\n");
+        this.options.message("Query " + suffix + ":\n"
+                        + dbspQuery + "\n", 1);
         compiler.generateOutputForNextView(false);
-        for (SqlStatement view: viewPreparation.definitions()) {
+        for (SltSqlStatement view: viewPreparation.definitions()) {
             compiler.compileStatement(view.statement, view.statement);
             compiler.throwIfErrorsOccurred();
         }
         compiler.generateOutputForNextView(true);
-        compiler.compileStatement(dbspQuery, testQuery.name);
+        compiler.compileStatement(dbspQuery, "" /* testQuery.getName() */);
         compiler.throwIfErrorsOccurred();
         compiler.optimize();
         DBSPCircuit dbsp = compiler.getFinalCircuit("gen" + suffix);
         //ToDotVisitor.toDot("circuit.jpg", true, dbsp);
         DBSPZSetLiteral expectedOutput = null;
-        if (testQuery.outputDescription.queryResults != null) {
+        if (testQuery.outputDescription.getQueryResults() != null) {
             IDBSPContainer container;
             if (dbsp.getOutputCount() != 1)
                 throw new RuntimeException(
@@ -342,7 +339,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
             List<DBSPExpression> fields = new ArrayList<>();
             int col = 0;
             DBSPExpression field;
-            for (String s: testQuery.outputDescription.queryResults) {
+            for (String s: testQuery.outputDescription.getQueryResults()) {
                 DBSPType colType = outputElementType.tupFields[col];
                 if (s.equalsIgnoreCase("null"))
                     field = DBSPLiteral.none(colType);
@@ -380,8 +377,6 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
                 throw new RuntimeException("No hash or outputs specified");
         }
 
-        if (this.validateJson)
-            ToJitVisitor.validateJson(dbsp, false);
         DBSPFunction func = createTesterCode(
                 "tester" + suffix, dbsp,
                 inputGeneratingFunction,
@@ -404,62 +399,61 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
     }
 
     void createTables(DBSPCompiler compiler) {
-        for (SqlStatement statement : this.tablePreparation.statements) {
+        for (SltSqlStatement statement : this.tablePreparation.statements) {
             String stat = statement.statement;
             compiler.compileStatement(stat, stat);
         }
     }
 
     @Override
-    public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-            throws SqlParseException, IOException, InterruptedException, SQLException {
+    public TestStatistics execute(SltTestFile file, OptionsParser.SuppliedOptions options)
+            throws SQLException {
+        this.startTest();
+        int batchSize = 500;
+        String name = file.toString();
+        if (name.startsWith("select"))
+            batchSize = 20;
+        if (name.startsWith("select5"))
+            batchSize = 5;
+        int toSkip = 0;
+
         TestStatistics result = new TestStatistics(options.stopAtFirstError);
         boolean seenQueries = false;
-        int remainingInBatch = this.batchSize;
-        int toSkip = this.skip;
+        int remainingInBatch = batchSize;
         for (ISqlTestOperation operation: file.fileContents) {
-            SqlStatement stat = operation.as(SqlStatement.class);
+            SltSqlStatement stat = operation.as(SltSqlStatement.class);
             if (stat != null) {
                 if (seenQueries) {
                     this.runBatch(result);
-                    remainingInBatch = this.batchSize;
+                    remainingInBatch = batchSize;
                     seenQueries = false;
                 }
                 boolean status;
                 try {
                     if (this.buggyOperations.contains(stat.statement)) {
-                        Logger.INSTANCE.from(this, 1)
-                                .append("Skipping buggy test ")
-                                .append(stat.statement)
-                                .newline();
+                        this.options.message("Skipping buggy test " + stat.statement + "\n", 1);
                         status = stat.shouldPass;
                     } else {
                         status = this.statement(stat);
                     }
                 } catch (SQLException ex) {
-                    Logger.INSTANCE.from(this, 1)
-                            .append("Statement failed ")
-                            .append(stat.statement)
-                            .newline();
+                    this.options.error(ex);
                     status = false;
                 }
                 this.statementsExecuted++;
-                if (this.validateStatus &&
+                if (//this.options.validateStatus &&
                         status != stat.shouldPass)
                     throw new RuntimeException("Statement " + stat.statement + " status " + status + " expected " + stat.shouldPass);
             } else {
-                SqlTestQuery query = operation.to(SqlTestQuery.class);
+                SqlTestQuery query = operation.to(options.err, SqlTestQuery.class);
                 if (toSkip > 0) {
                     toSkip--;
-                    result.ignored++;
+                    result.incIgnored();
                     continue;
                 }
-                if (this.buggyOperations.contains(query.query)) {
-                    Logger.INSTANCE.from(this, 1)
-                            .append("Skipping buggy test ")
-                            .append(query.query)
-                            .newline();
-                    result.ignored++;
+                if (this.buggyOperations.contains(query.getQuery())) {
+                    options.message("Skipping " + query.getQuery(), 2);
+                    result.incIgnored();
                     continue;
                 }
                 seenQueries = true;
@@ -467,20 +461,16 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
                 remainingInBatch--;
                 if (remainingInBatch == 0) {
                     this.runBatch(result);
-                    remainingInBatch = this.batchSize;
+                    remainingInBatch = batchSize;
                     seenQueries = false;
                 }
             }
         }
-        if (remainingInBatch != this.batchSize)
+        if (remainingInBatch != batchSize)
             this.runBatch(result);
         // Make sure there are no left-overs if this executor
         // is invoked to process a new file.
         this.reset();
-        Logger.INSTANCE.from(this, 1)
-                .append("Finished executing ")
-                .append(file.toString())
-                .newline();
         return result;
     }
 
@@ -537,7 +527,7 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
                 )
         );
         list.add(new DBSPExpressionStatement(loop));
-        DBSPExpression sort = new DBSPEnumValue("SortOrder", description.order.toString());
+        DBSPExpression sort = new DBSPEnumValue("SortOrder", description.getOrder().toString());
         DBSPExpression output0 = new DBSPFieldExpression(null,
                 createOutput.getVarReference(), 0);
 
@@ -612,11 +602,8 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
                 .addAnnotation("#[test]");
     }
 
-    public boolean statement(SqlStatement statement) throws SQLException {
-        Logger.INSTANCE.from(this, 1)
-                .append("Executing ")
-                .append(statement.toString())
-                .newline();
+    public boolean statement(SltSqlStatement statement) throws SQLException {
+        this.options.message("Executing " + statement + "\n", 1);
         String command = statement.statement.toLowerCase();
         if (command.startsWith("create index"))
             return true;
@@ -657,5 +644,32 @@ public class DBSPExecutor extends SqlSLTTestExecutor {
         }
         rust.writeAndClose();
         return testFileName;
+    }
+
+    public static void register(OptionsParser parser) {
+        AtomicReference<Boolean> jit = new AtomicReference<>();
+        AtomicReference<Boolean> incremental = new AtomicReference<>();
+        parser.registerOption("-j", null, "Emit JIT code", o-> {
+                    jit.set(true);
+                    return true;
+                });
+        parser.registerOption("-inc", null, "Incremental validation", o -> {
+            incremental.set(true);
+            return true;
+        });
+        parser.registerExecutor("dbsp", () -> {
+            OptionsParser.SuppliedOptions options = parser.getOptions();
+            try {
+                CompilerOptions compilerOptions = new CompilerOptions();
+                compilerOptions.optimizerOptions.incrementalize = incremental.get();
+                compilerOptions.ioOptions.jit = jit.get();
+                DBSPExecutor result = new DBSPExecutor(options, compilerOptions, "csv");
+                Set<String> bugs = options.readBugsFile();
+                result.avoid(bugs);
+                return result;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

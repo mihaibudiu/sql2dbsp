@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 VMware, Inc.
+ * Copyright 2022 VMware, Inc.
  * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,23 +19,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ *
  */
 
-package org.dbsp.sqllogictest.executors;
+package org.dbsp.sqllogictest;
 
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.dbsp.sqllogictest.ExecutionOptions;
-import org.dbsp.sqllogictest.SLTTestFile;
-import org.dbsp.util.TestStatistics;
+import net.hydromatic.sqllogictest.SltSqlStatement;
 
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
-public abstract class SqlSLTTestExecutor extends SqlTestExecutor {
+/**
+ * A set of SQL statements.
+ */
+public class SltSqlStatementList {
     /**
-     * Execute the specified test file.
+     * List of SQL statements that are used to create tables.
      */
-    public abstract TestStatistics execute(SLTTestFile testFile, ExecutionOptions options)
-            throws SqlParseException, IOException, SQLException, NoSuchAlgorithmException, InterruptedException;
+    public final List<SltSqlStatement> statements;
+    public SltSqlStatementList() {
+        this.statements = new ArrayList<>();
+    }
+    public void add(SltSqlStatement statement) {
+        this.statements.add(statement);
+    }
+    public void clear() { this.statements.clear(); }
+    public boolean contains(SltSqlStatement statement) { return this.statements.contains(statement); }
 }

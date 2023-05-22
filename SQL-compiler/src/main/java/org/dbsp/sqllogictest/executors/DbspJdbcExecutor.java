@@ -23,7 +23,12 @@
 
 package org.dbsp.sqllogictest.executors;
 
-import org.apache.calcite.sql.parser.SqlParseException;
+import net.hydromatic.sqllogictest.OptionsParser;
+import net.hydromatic.sqllogictest.SltSqlStatement;
+import net.hydromatic.sqllogictest.SltTestFile;
+import net.hydromatic.sqllogictest.TestStatistics;
+import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
+import net.hydromatic.sqllogictest.executors.JdbcExecutor;
 import org.dbsp.sqlCompiler.compiler.CompilerOptions;
 import org.dbsp.sqlCompiler.compiler.backend.DBSPCompiler;
 import org.dbsp.sqlCompiler.ir.expression.DBSPExpression;
@@ -34,17 +39,13 @@ import org.dbsp.sqlCompiler.ir.type.DBSPTypeTuple;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeDouble;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeInteger;
 import org.dbsp.sqlCompiler.ir.type.primitive.DBSPTypeString;
-import org.dbsp.sqllogictest.ExecutionOptions;
-import org.dbsp.sqllogictest.SqlStatement;
-import org.dbsp.sqllogictest.SLTTestFile;
-import org.dbsp.util.Logger;
-import org.dbsp.util.TestStatistics;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,28 +53,40 @@ import java.util.regex.Pattern;
  * This is a hybrid test executor which keeps all the state in a
  * database using JDBC and executes all queries using DBSP>
  */
-public class DBSP_JDBC_Executor extends DBSPExecutor {
-    private final JDBCExecutor statementExecutor;
+public class DbspJdbcExecutor extends DBSPExecutor {
+    private final JdbcExecutor statementExecutor;
     private final List<String> tablesCreated;
+    // TODO: remove this field.
+    private final Connection fakeConnection;
 
     /**
-     * @param validateJson If true validate the JSON for the produced IRs.
-     * @param execute If true the tests are executed, otherwise they are only compiled to Rust.
-     * @param options Compilation options.
+     * @param compilerOptions Compilation options.
+     * @param executor Executor based on JDBC.
+     * @param options  Command-line options.
      */
-    public DBSP_JDBC_Executor(JDBCExecutor executor,
-                              boolean execute, boolean validateJson,
-                              CompilerOptions options,
-                              String connectionString) {
-        super(execute, validateJson, options, connectionString);
+    public DbspJdbcExecutor(JdbcExecutor executor,
+                            OptionsParser.SuppliedOptions options,
+                            CompilerOptions compilerOptions) {
+        super(options, compilerOptions, "csv");
         this.statementExecutor = executor;
         this.tablesCreated = new ArrayList<>();
+        try {
+            this.fakeConnection = DriverManager.getConnection("jdbc:hsqldb:mem:db0", "", "");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    Connection getStatementExecutorConnection() {
+        // TODO: once a new version of the org.hydromatic.sql-logic-test package
+        // is published replace this with its connection.
+        // return this.statementExecutor.getConnection();
+        return this.fakeConnection;
     }
 
     public DBSPZSetLiteral getTableContents(String table) throws SQLException {
         List<DBSPExpression> rows = new ArrayList<>();
-        assert this.statementExecutor.connection != null;
-        try (Statement stmt1 = this.statementExecutor.connection.createStatement()) {
+        try (Statement stmt1 = this.getStatementExecutorConnection().createStatement()) {
             ResultSet rs = stmt1.executeQuery("SELECT * FROM " + table);
             ResultSetMetaData meta = rs.getMetaData();
             DBSPType[] colTypes = new DBSPType[meta.getColumnCount()];
@@ -165,13 +178,12 @@ public class DBSP_JDBC_Executor extends DBSPExecutor {
      preserve primary keys, but this does not seem important right now.
      */
     public String generateCreateStatement(String table) throws SQLException {
-        assert this.statementExecutor.connection != null;
         StringBuilder builder = new StringBuilder();
         builder.append("CREATE TABLE ");
         builder.append(table);
         builder.append("(");
 
-        try (Statement stmt = this.statementExecutor.connection.createStatement()) {
+        try (Statement stmt = this.getStatementExecutorConnection().createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + table + " WHERE 1 = 0");
             ResultSetMetaData meta = rs.getMetaData();
             for (int i = 0; i < meta.getColumnCount(); i++) {
@@ -225,17 +237,14 @@ public class DBSP_JDBC_Executor extends DBSPExecutor {
         return this.generateCreateStatement(tableName);
     }
 
-    public boolean statement(SqlStatement statement) throws SQLException {
+    public boolean statement(SltSqlStatement statement) throws SQLException {
         this.statementExecutor.statement(statement);
         String command = statement.statement.toLowerCase();
-        Logger.INSTANCE.from(this, 1)
-                .append("Executing ")
-                .append(command)
-                .newline();
+        this.options.message("Executing " + command + "\n", 1);
         @Nullable
         String create = this.rewriteCreateTable(command);
         if (create != null) {
-            SqlStatement rewritten = new SqlStatement(create, statement.shouldPass);
+            SltSqlStatement rewritten = new SltSqlStatement(create, statement.shouldPass);
             super.statement(rewritten);
         } else if (command.contains("drop table") ||
                 command.contains("create view") ||
@@ -257,11 +266,34 @@ public class DBSP_JDBC_Executor extends DBSPExecutor {
     }
 
     @Override
-    public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-            throws SqlParseException, IOException, InterruptedException, SQLException {
+    public TestStatistics execute(SltTestFile file, OptionsParser.SuppliedOptions options)
+            throws SQLException {
         this.statementExecutor.establishConnection();
         this.statementExecutor.dropAllViews();
         this.statementExecutor.dropAllTables();
         return super.execute(file, options);
+    }
+
+    public static void register(OptionsParser parser) {
+        parser.registerExecutor("hybrid", () -> {
+            OptionsParser.SuppliedOptions options = parser.getOptions();
+            try {
+                // TODO: replace there on the next version of sql-logic-test.
+                // JdbcExecutor inner = parser.getExecutorByName("hsql");
+                JdbcExecutor inner = new HsqldbExecutor(options);
+                // DBSPExecutor unused = parser.getExecutorByName("dbsp").to(DBSPExecutor.class);
+                // boolean validateJIT = unused.validateJIT;
+                boolean validateJIT = false;
+                // CompilerOptions compilerOptions = unused.compilerOptions;
+                CompilerOptions compilerOptions = new CompilerOptions();
+                DbspJdbcExecutor result = new DbspJdbcExecutor(
+                        inner, options, compilerOptions);
+                Set<String> bugs = options.readBugsFile();
+                result.avoid(bugs);
+                return result;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

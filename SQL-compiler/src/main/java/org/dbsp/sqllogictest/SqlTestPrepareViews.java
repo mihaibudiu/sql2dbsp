@@ -25,6 +25,7 @@
 
 package org.dbsp.sqllogictest;
 
+import net.hydromatic.sqllogictest.SltSqlStatement;
 import org.dbsp.util.Utilities;
 
 import java.util.LinkedHashMap;
@@ -36,18 +37,18 @@ import java.util.regex.Pattern;
  * A set of SQL statements create tables.
  */
 public class SqlTestPrepareViews {
-    public final Map<String, SqlStatement> viewDefinition = new LinkedHashMap<>();
+    public final Map<String, SltSqlStatement> viewDefinition = new LinkedHashMap<>();
     static final Pattern createRegex = Pattern.compile("^create\\s+view\\s+(\\w+)");
     static final Pattern dropRegex = Pattern.compile("drop\\s+view\\s+(\\w+)");
 
-    static String getView(Pattern pattern, SqlStatement statement) {
+    static String getView(Pattern pattern, SltSqlStatement statement) {
         Matcher m = pattern.matcher(statement.statement.toLowerCase());
         if (!m.find())
             throw new RuntimeException("Could not figure out view in " + statement);
         return m.group(1);
     }
 
-    public void add(SqlStatement statement) {
+    public void add(SltSqlStatement statement) {
         String view = getView(createRegex, statement);
         Utilities.putNew(this.viewDefinition, view, statement);
     }
@@ -56,12 +57,12 @@ public class SqlTestPrepareViews {
         this.viewDefinition.clear();
     }
 
-    public void remove(SqlStatement statement) {
+    public void remove(SltSqlStatement statement) {
         String view = getView(dropRegex, statement);
         this.viewDefinition.remove(view);
     }
 
-    public Iterable<? extends SqlStatement> definitions() {
+    public Iterable<? extends SltSqlStatement> definitions() {
         return this.viewDefinition.values();
     }
 }

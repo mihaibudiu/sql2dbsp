@@ -25,9 +25,9 @@ use md5;
 
 #[derive(Eq, PartialEq)]
 pub enum SortOrder {
-    None,
-    Row,
-    Value,
+    NONE,
+    ROW,
+    VALUE,
 }
 
 fn compare<T>(left: &Vec<T>, right: &Vec<T>) -> Ordering
@@ -114,9 +114,9 @@ impl<'a> DataRows<'a> {
     }
     pub fn push(self: &mut Self, sql_row: SqlRow) {
         let row_vec = sql_row.to_slt_strings(&self.format);
-        if *self.order == SortOrder::Row || *self.order == SortOrder::None {
+        if *self.order == SortOrder::ROW || *self.order == SortOrder::NONE {
             self.rows.push(row_vec);
-        } else if *self.order == SortOrder::Value {
+        } else if *self.order == SortOrder::VALUE {
             for r in row_vec {
                 self.rows.push(vec!(r))
             }
@@ -124,7 +124,7 @@ impl<'a> DataRows<'a> {
     }
 
     pub fn get(mut self: Self) -> Vec<Vec<String>> {
-        if *self.order != SortOrder::None {
+        if *self.order != SortOrder::NONE {
             self.rows.sort_unstable_by(&compare);
         }
         self.rows

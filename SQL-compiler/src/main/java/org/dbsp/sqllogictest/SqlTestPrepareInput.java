@@ -28,4 +28,4 @@ package org.dbsp.sqllogictest;
 /**
  * A Set of Sql statements that insert or delete data from tables.
  */
-public class SqlTestPrepareInput extends SqlStatementList {}
+public class SqlTestPrepareInput extends SltSqlStatementList {}
