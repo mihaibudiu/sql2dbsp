@@ -270,7 +270,10 @@ public class DBSPExecutor extends SqlSltTestExecutor {
                     codeGenerated.add(pc);
                 } catch (Throwable ex) {
                     System.err.println("Error while compiling " + testQuery.getQuery() + ": " + ex.getMessage());
-                    throw ex;
+                    result.addFailure(
+                            new TestStatistics.FailedTestDescription(testQuery,
+                                    "Exception during test", ex, options.verbosity > 0));
+                    return;
                 }
                 queryNo++;
             }
@@ -305,7 +308,7 @@ public class DBSPExecutor extends SqlSltTestExecutor {
         if (!dbspQuery.toLowerCase().contains("create view"))
             dbspQuery = "CREATE VIEW V AS (" + origQuery + ")";
         this.options.message("Query " + suffix + ":\n"
-                        + dbspQuery + "\n", 1);
+                        + dbspQuery + "\n", 2);
         compiler.generateOutputForNextView(false);
         for (SltSqlStatement view: viewPreparation.definitions()) {
             compiler.compileStatement(view.statement, view.statement);
@@ -603,7 +606,7 @@ public class DBSPExecutor extends SqlSltTestExecutor {
     }
 
     public boolean statement(SltSqlStatement statement) throws SQLException {
-        this.options.message("Executing " + statement + "\n", 1);
+        this.options.message("Executing " + statement + "\n", 2);
         String command = statement.statement.toLowerCase();
         if (command.startsWith("create index"))
             return true;

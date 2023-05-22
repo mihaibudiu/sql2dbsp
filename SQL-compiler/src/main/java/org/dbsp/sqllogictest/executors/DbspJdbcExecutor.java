@@ -240,7 +240,7 @@ public class DbspJdbcExecutor extends DBSPExecutor {
     public boolean statement(SltSqlStatement statement) throws SQLException {
         this.statementExecutor.statement(statement);
         String command = statement.statement.toLowerCase();
-        this.options.message("Executing " + command + "\n", 1);
+        this.options.message("Executing " + command + "\n", 2);
         @Nullable
         String create = this.rewriteCreateTable(command);
         if (create != null) {
